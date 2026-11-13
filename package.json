@@ -1,0 +1,20 @@
+{
+  "name": "lazydata",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm --filter @lazydata/validator build",
+    "typecheck": "pnpm --filter @lazydata/validator typecheck",
+    "test": "node --test scripts/*.test.mjs && pnpm --filter @lazydata/validator test",
+    "pack:validator": "pnpm build && pnpm --filter @lazydata/validator pack"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "7.0.2"
+  }
+}

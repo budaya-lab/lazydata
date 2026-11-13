@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "stages": {
+    "master": "Master collection",
+    "curated": "Curated dataset",
+    "annotated": "Annotated dataset",
+    "ground-truth": "Ground truth"
+  },
+  "package": {
+    "requiredFields": ["name", "title", "description", "keywords", "resources"]
+  },
+  "resource": {
+    "requiredFields": ["name", "title", "path"]
+  },
+  "keywords": {
+    "requiredPrefixes": ["task", "project", "stage"],
+    "allowOtherKeywords": true
+  },
+  "buckets": {
+    "required": false
+  }
+}
