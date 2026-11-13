@@ -1,6 +1,6 @@
 {
   "name": "@lazydata/validator",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Read-only dataset metadata and repository validation",
   "private": true,
   "type": "module",
