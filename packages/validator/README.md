@@ -96,8 +96,11 @@ confidentiality, licensing authority or permission to publish.
 
 `pnpm pack:validator` at the workspace root builds a local archive containing
 compiled JavaScript, declarations, this guide and matched policy. The package
-name is a local workspace name, not a claim to a registry namespace. Nothing is
-published and no release mechanism is configured yet.
+name is a local workspace name, not a claim to a registry namespace. Release Please
+manages reviewed repository-wide GitHub releases and keeps this package version
+aligned with the workspace. Packages stay private; no registry publication or
+compiled release-archive upload is configured. See the
+[release guide](https://github.com/budaya-lab/lazydata#ci-and-releases).
 
 Future consumers must pin one reviewed code-and-policy release. Do not fetch
 moving branches, copy source into datasets or depend on sibling checkouts.
@@ -109,4 +112,4 @@ Tests run compiled code, frozen inputs, filesystem snapshots, a portable VM,
 CLI failures and an unpacked consumer with no runtime dependencies. The artifact
 test also compiles consumer types and invokes the executable through a symlink.
 The test suite currently needs pnpm and `tar`; local verification is on macOS.
-Node.js 22 and real-browser verification remain separate gates.
+CI targets Node.js 22. Real-browser verification remains separate from VM tests.

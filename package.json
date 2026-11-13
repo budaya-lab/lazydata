@@ -10,7 +10,7 @@
   "scripts": {
     "build": "pnpm --filter @lazydata/validator build",
     "typecheck": "pnpm --filter @lazydata/validator typecheck",
-    "test": "pnpm --filter @lazydata/validator test",
+    "test": "node --test scripts/*.test.mjs && pnpm --filter @lazydata/validator test",
     "pack:validator": "pnpm build && pnpm --filter @lazydata/validator pack"
   },
   "devDependencies": {
