@@ -1,0 +1,9 @@
+{
+  "name": "example-dataset",
+  "title": "Example dataset",
+  "description": "A fictional dataset used only for validation tests.",
+  "keywords": ["task:example", "project:example", "stage:master", "subject"],
+  "resources": [
+    { "name": "input", "title": "Input", "path": "input.csv", "format": "csv" }
+  ]
+}
