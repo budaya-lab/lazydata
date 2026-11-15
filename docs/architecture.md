@@ -36,6 +36,6 @@ Consumers must eventually pin one reviewed code-and-policy release. They must
 replace duplicated checks, not add this validator alongside competing rules.
 
 Sources: [TypeScript library compiler options](https://www.typescriptlang.org/docs/handbook/modules/guides/choosing-compiler-options.html#im-writing-a-library),
-[Node.js 22 package exports](https://nodejs.org/docs/latest-v22.x/api/packages.html#package-entry-points),
+[Node.js 24 package exports](https://nodejs.org/docs/latest-v24.x/api/packages.html#package-entry-points),
 [pnpm workspaces](https://pnpm.io/workspaces), and
 [pnpm settings](https://pnpm.io/settings).

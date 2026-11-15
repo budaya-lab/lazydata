@@ -15,7 +15,7 @@ application code, not this package.
 
 ## Development
 
-Use Node.js 22+ and pnpm 12.11.2. From this directory:
+Use Node.js 24 LTS and pnpm 12.11.2. From this directory:
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
@@ -34,7 +34,7 @@ Template, Steward and portal integration are separate migration steps.
 ## CI and releases
 
 [Validate lazydata](.github/workflows/validate-lazydata.yml) runs on PRs targeting
-`main`, pushes to `main` and manual dispatch. It uses Node.js 22 and the pinned
+`main`, pushes to `main` and manual dispatch. It uses Node.js 24 and the pinned
 pnpm version, installs frozen dependencies without lifecycle scripts, then runs
 typecheck, tests (including build and packed-consumer checks) and dependency audit.
 Keep workflow **Validate lazydata** and job/check **tests** stable.

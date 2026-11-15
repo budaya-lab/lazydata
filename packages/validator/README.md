@@ -38,7 +38,7 @@ const label = stageLabel(keywords, policy);
 ```
 
 JSON-loading syntax depends on the consumer's environment. The example works in
-Node.js 22; SvelteKit/browser integration has not been implemented or verified.
+Node.js 24; SvelteKit/browser integration has not been implemented or verified.
 
 ## Local repository API
 
@@ -112,4 +112,4 @@ Tests run compiled code, frozen inputs, filesystem snapshots, a portable VM,
 CLI failures and an unpacked consumer with no runtime dependencies. The artifact
 test also compiles consumer types and invokes the executable through a symlink.
 The test suite currently needs pnpm and `tar`; local verification is on macOS.
-CI targets Node.js 22. Real-browser verification remains separate from VM tests.
+CI targets Node.js 24. Real-browser verification remains separate from VM tests.

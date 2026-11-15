@@ -4,6 +4,7 @@ Read `README.md`, `docs/architecture.md` and `packages/validator/README.md` firs
 This is a fresh TypeScript project. Do not reuse the old Python/Textual experiment.
 
 - Use pnpm at this workspace root. Keep its lockfile and package-manager pin.
+- Target Node.js 24 LTS; keep CI, engine requirements, Node types and docs aligned.
 - Only TypeScript and Node types are approved dependencies for this slice.
 - The SvelteKit application is deferred. Do not scaffold UI or add its dependencies yet.
 - Keep portable checks free of I/O, Node globals and framework dependencies.
