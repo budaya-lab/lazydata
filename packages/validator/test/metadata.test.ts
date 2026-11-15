@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 import { validateMetadata } from '@lazydata/validator';
-
-const policy = JSON.parse(readFileSync(new URL('../dataset.config.json', import.meta.url), 'utf8'));
+import policy from '../dataset.config.json' with { type: 'json' };
 const data = {
   name: 'example',
   title: 'Example',
@@ -14,7 +12,7 @@ const data = {
 };
 
 test('portable metadata validation accepts safe references without inspecting or changing them', () => {
-  const freeze = (value) => {
+  const freeze = <T>(value: T): T => {
     if (value !== null && typeof value === 'object') {
       Object.values(value).forEach(freeze);
       Object.freeze(value);

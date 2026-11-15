@@ -5,11 +5,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { assertCommandFailure } from './helpers.ts';
 
 const cli = fileURLToPath(new URL('../dist/cli.js', import.meta.url));
 const data = JSON.parse(readFileSync(new URL('./fixtures/datapackage.json', import.meta.url), 'utf8'));
 
-function run(args, cwd) {
+function run(args: readonly string[], cwd?: string) {
   return execFileSync(process.execPath, [cli, ...args], { cwd, encoding: 'utf8', stdio: 'pipe' });
 }
 
@@ -34,7 +35,10 @@ test('CLI shows help and rejects unsupported options or extra dataset roots', ()
   assert.match(run(['-h']), /Usage: lazydata-validate/);
 
   for (const args of [['--unknown'], ['first', 'second']]) {
-    assert.throws(() => run(args), (error) => error.status === 1);
+    assert.throws(() => run(args), (error) => {
+      assertCommandFailure(error);
+      return error.status === 1;
+    });
   }
 });
 
@@ -46,10 +50,12 @@ test('CLI does not disclose local paths or malformed descriptor contents in read
       if (malformed !== undefined) writeFileSync(join(root, 'datapackage.json'), malformed);
 
       assert.throws(() => run([root]), (error) => {
+        assertCommandFailure(error);
+        const stderr = String(error.stderr);
         assert.equal(error.status, 1);
-        assert.match(error.stderr, /datapackage\.json/);
-        assert.ok(!error.stderr.includes(root));
-        assert.doesNotMatch(error.stderr, /private-example-not-json/);
+        assert.match(stderr, /datapackage\.json/);
+        assert.ok(!stderr.includes(root));
+        assert.doesNotMatch(stderr, /private-example-not-json/);
         return true;
       });
     }

@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import config from '../release-please-config.json' with { type: 'json' };
+import workspace from '../package.json' with { type: 'json' };
+import validator from '../packages/validator/package.json' with { type: 'json' };
+import released from '../.release-please-manifest.json' with { type: 'json' };
 
-function readJson(path) {
-  return JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
-}
+const manifest: Record<string, string> = released;
 
 test('one repository release updates both package versions', () => {
-  const config = readJson('release-please-config.json');
   const release = config.packages['.'];
 
   assert.deepEqual(Object.keys(config.packages), ['.']);
@@ -21,10 +21,6 @@ test('one repository release updates both package versions', () => {
 });
 
 test('workspace, validator and released manifest versions stay aligned', () => {
-  const workspace = readJson('package.json');
-  const validator = readJson('packages/validator/package.json');
-  const manifest = readJson('.release-please-manifest.json');
-
   assert.match(workspace.version, /^\d+\.\d+\.\d+$/);
   assert.equal(validator.version, workspace.version);
   assert.ok(Object.keys(manifest).every((path) => path === '.'));

@@ -16,10 +16,10 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { validateDataPackage } from '@lazydata/validator/repository';
+import policy from '../dataset.config.json' with { type: 'json' };
+import { assertCommandFailure } from './helpers.ts';
 
-const { stages: stageLabels } = JSON.parse(
-  readFileSync(new URL('../dataset.config.json', import.meta.url), 'utf8')
-);
+const { stages: stageLabels } = policy;
 const requiredKeywords = ['task:example', 'project:example'];
 
 const validPackage = {
@@ -175,7 +175,7 @@ test('requires nonblank package titles and descriptions', () => {
   try {
     for (const field of ['title', 'description']) {
       for (const value of [undefined, null, '', '   ', false, 0, {}, []]) {
-        const descriptor = { ...validPackage, [field]: value };
+        const descriptor: Record<string, unknown> = { ...validPackage, [field]: value };
         if (value === undefined) delete descriptor[field];
 
         const errors = validateDataPackage(descriptor, root);
@@ -366,7 +366,7 @@ test('validates supplied optional entry text and contributor roles', () => {
       ['contributors', ['title', 'path', 'email', 'givenName', 'familyName', 'organization'], { title: 'Synthetic group' }],
       ['licenses', ['name', 'path', 'title'], { name: 'CC-BY-4.0' }],
       ['sources', ['title', 'path', 'email', 'version'], { title: 'Source collection' }],
-    ]) {
+    ] as const) {
       for (const property of properties) {
         for (const value of [null, false, 42, [], {}, '', '   ']) {
           const errors = validateDataPackage({ ...validPackage, [field]: [{ ...entry, [property]: value }] }, root);
@@ -410,7 +410,7 @@ test('the function and CLI leave descriptors and files unchanged on success and 
   const root = fixture();
   const script = fileURLToPath(new URL('../dist/cli.js', import.meta.url));
 
-  const freeze = (value) => {
+  const freeze = <T>(value: T): T => {
     if (value !== null && typeof value === 'object') {
       Object.values(value).forEach(freeze);
       Object.freeze(value);
@@ -419,7 +419,7 @@ test('the function and CLI leave descriptors and files unchanged on success and 
     return value;
   };
 
-  const snapshot = () => readdirSync(root, { recursive: true }).sort().map((path) => {
+  const snapshot = () => readdirSync(root, { recursive: true, encoding: 'utf8' }).sort().map((path) => {
     const fullPath = join(root, path);
     const stat = statSync(fullPath);
 
@@ -468,8 +468,14 @@ test('the function and CLI leave descriptors and files unchanged on success and 
       assert.deepEqual(snapshot(), beforeFiles, 'the function must not write files');
 
       const run = () => execFileSync(process.execPath, [script], { cwd: root, encoding: 'utf8', stdio: 'pipe' });
-      if (invalid) assert.throws(run, (error) => error.status === 1 && /omit format/.test(error.stderr));
-      else assert.match(run(), /valid/);
+      if (invalid) {
+        assert.throws(run, (error) => {
+          assertCommandFailure(error);
+          return error.status === 1 && /omit format/.test(String(error.stderr));
+        });
+      } else {
+        assert.match(run(), /valid/);
+      }
 
       assert.deepEqual(snapshot(), beforeFiles, 'the CLI must not write files');
     }
@@ -494,7 +500,10 @@ test('CLI validates datapackage.json and fails for missing or malformed descript
     }));
     assert.throws(
       () => execFileSync(process.execPath, [script], { cwd: root, stdio: 'pipe' }),
-      (error) => error.status === 1 && /task:|project:/.test(error.stderr)
+      (error) => {
+        assertCommandFailure(error);
+        return error.status === 1 && /task:|project:/.test(String(error.stderr));
+      }
     );
   } finally {
     rmSync(root, { recursive: true, force: true });

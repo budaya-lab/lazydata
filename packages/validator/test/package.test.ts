@@ -15,11 +15,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import bundledPolicy from '../dataset.config.json' with { type: 'json' };
+import data from './fixtures/datapackage.json' with { type: 'json' };
+import { assertCommandFailure } from './helpers.ts';
 
 const source = fileURLToPath(new URL('../', import.meta.url));
 
 test('portable exports work without Node globals or built-in imports', () => {
-  const script = fileURLToPath(new URL('./fixtures/portable-validation.mjs', import.meta.url));
+  const script = fileURLToPath(new URL('./fixtures/portable-validation.ts', import.meta.url));
   const output = execFileSync(process.execPath, ['--experimental-vm-modules', script], {
     encoding: 'utf8',
     stdio: 'pipe',
@@ -39,7 +42,7 @@ test('an isolated consumer uses its bundled policy and never changes files, incl
   const dataset = join(root, 'dataset');
   const configPath = join(bundle, 'dataset.config.json');
 
-  const snapshot = () => readdirSync(root, { recursive: true }).sort().map((path) => {
+  const snapshot = () => readdirSync(root, { recursive: true, encoding: 'utf8' }).sort().map((path) => {
     const file = join(root, path);
     const stat = statSync(file);
 
@@ -51,7 +54,7 @@ test('an isolated consumer uses its bundled policy and never changes files, incl
     };
   });
 
-  const unchanged = (run) => {
+  const unchanged = <T>(run: () => T): T => {
     const before = snapshot();
 
     try {
@@ -68,15 +71,14 @@ test('an isolated consumer uses its bundled policy and never changes files, incl
     cpSync(join(source, 'package.json'), join(bundle, 'package.json'));
     cpSync(join(source, 'dataset.config.json'), configPath);
 
-    const config = JSON.parse(readFileSync(configPath, 'utf8'));
-    const data = JSON.parse(readFileSync(join(source, 'test/fixtures/datapackage.json'), 'utf8'));
+    const config: typeof bundledPolicy = JSON.parse(readFileSync(configPath, 'utf8'));
 
     writeFileSync(join(dataset, 'input.csv'), 'value\nexample\n');
     writeFileSync(join(dataset, 'datapackage.json'), JSON.stringify(data));
 
     const beforeImport = snapshot();
-    const portable = await import(pathToFileURL(join(bundle, 'dist/index.js')).href);
-    const local = await import(pathToFileURL(join(bundle, 'dist/repository.js')).href);
+    const portable: typeof import('@lazydata/validator') = await import(pathToFileURL(join(bundle, 'dist/index.js')).href);
+    const local: typeof import('@lazydata/validator/repository') = await import(pathToFileURL(join(bundle, 'dist/repository.js')).href);
 
     assert.deepEqual(snapshot(), beforeImport, 'imports must not change files');
     assert.deepEqual(unchanged(() => local.validateDataPackage(data, dataset)), []);
@@ -123,7 +125,10 @@ test('an isolated consumer uses its bundled policy and never changes files, incl
         assert.throws(() => local.validateDataPackage(data, dataset), /dataset\.config/);
         assert.throws(
           () => execFileSync(process.execPath, [cli], { cwd: dataset, stdio: 'pipe' }),
-          (error) => error.status === 1 && /dataset\.config/.test(error.stderr)
+          (error) => {
+            assertCommandFailure(error);
+            return error.status === 1 && /dataset\.config/.test(String(error.stderr));
+          }
         );
       });
     }

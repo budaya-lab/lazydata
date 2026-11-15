@@ -8,8 +8,9 @@ import { fileURLToPath } from 'node:url';
 
 import { parseBuckets } from '@lazydata/validator';
 import { validateDataPackage } from '@lazydata/validator/repository';
+import { assertCommandFailure } from './helpers.ts';
 
-const validCases = [
+const validCases: [string, string, Record<string, string | number>[]][] = [
   ['year,count\n001,0\n1962,10\n', 'year', [{ year: '001', count: 0 }, { year: '1962', count: 10 }]],
   ['\uFEFF category , count \r\n A , 0 \r\n\r\nB,0', 'category', [{ category: 'A', count: 0 }, { category: 'B', count: 0 }]],
   ['kind,count\n"A,B",2\n"A""B",3\n"two\nlines",4\n', 'kind', [{ kind: 'A,B', count: 2 }, { kind: 'A"B', count: 3 }, { kind: 'two\nlines', count: 4 }]],
@@ -88,6 +89,7 @@ test('CLI validates optional root buckets even when not declared as a resource',
 
     writeFileSync(join(root, 'buckets.csv'), 'year,count\nprivate-label,-1\n');
     assert.throws(run, (error) => {
+      assertCommandFailure(error);
       assert.match(error.stderr.toString(), /buckets\.csv.*row 2/);
       assert.doesNotMatch(error.stderr.toString(), /private-label/);
 

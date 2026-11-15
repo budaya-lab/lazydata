@@ -16,6 +16,7 @@ This is a fresh TypeScript project. Do not reuse the old Python/Textual experime
 - Never execute dataset-local scripts or infer provenance or publication permissions.
 - Prefer small functions, clear types and blank lines between logical steps.
 - Add behavior tests, not source-layout assertions. Preserve isolated package and VM checks.
+- Author tests/fixtures in TypeScript and typecheck them; keep generated JavaScript consumer probes as JavaScript.
 - Run `pnpm typecheck`, `pnpm test`, `pnpm audit` and `git diff --check` before handoff.
 - No separate linter is configured. Say so rather than claiming lint passed.
 - Keep workflow **Validate lazydata** and job/check **tests** stable; release gating uses that workflow name.
