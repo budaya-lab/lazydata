@@ -29,11 +29,15 @@ a sandbox against concurrent filesystem changes and does not authorize later rea
 or writes. Future application transactions need their own safety checks.
 
 Build with TypeScript's NodeNext modules and emit JavaScript plus declarations.
-No bundler, test framework or runtime dependency is needed. Ship only compiled
-modules, the policy and package documentation. The package is private and not yet
-published; its name does not claim an existing registry package or namespace.
-Consumers must eventually pin one reviewed code-and-policy release. They must
-replace duplicated checks, not add this validator alongside competing rules.
+No bundler, test framework or runtime dependency is needed. GitHub release `.tgz`
+assets contain compiled modules, declarations, policy and package documentation.
+The publisher builds the tagged main-history commit and verifies the exact
+archive through a fresh URL install and frozen offline reinstall before upload.
+Consumers pin the stable semver URL and commit their lockfile. No separate
+checksum files or registry publishing are used; normal package manager integrity
+is unchanged. Packages remain private and their names do not claim a registry
+namespace. Consumers replace duplicated checks, not add this validator alongside
+competing rules.
 
 Sources: [TypeScript library compiler options](https://www.typescriptlang.org/docs/handbook/modules/guides/choosing-compiler-options.html#im-writing-a-library),
 [Node.js 24 package exports](https://nodejs.org/docs/latest-v24.x/api/packages.html#package-entry-points),

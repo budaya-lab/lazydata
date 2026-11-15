@@ -22,5 +22,7 @@ This is a fresh TypeScript project. Do not reuse the old Python/Textual experime
 - Keep workflow **Validate lazydata** and job/check **tests** stable; release gating uses that workflow name.
 - Preserve successful-current-main-push release guards, the pinned Release Please action and built-in token.
 - One release manages the root and validator package versions; preserve the JSON extra-file updater.
+- Publish only compiled, install-tested semver `.tgz` assets from published main-history releases. Never overwrite assets or add standalone checksum files.
+- Preserve real URL-install and frozen-reinstall tests; package manager lockfile integrity stays enabled.
 - Manually validate each bot-created release PR branch before an owner-approved merge. Never auto-merge or add registry publishing implicitly.
 - Do not change consumer repositories, CI/release settings, publish, commit or push without approval.

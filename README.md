@@ -62,9 +62,15 @@ lazydata on that PR's branch**. Rerun after updates. PRs created with the built-
 token do not trigger automatic PR CI; see the
 [Release Please token guidance](https://github.com/googleapis/release-please-action/tree/5c625bfb5d1ff62eadeeb3772007f7f66fdcf071#other-actions-on-release-please-prs).
 Merge only with owner approval and passing required checks. Merging the release
-PR creates the version tag and GitHub Release, not an npm publication or compiled
-archive upload. Both packages stay private. Dataset-consumer distribution remains
-separate work.
+PR creates the version tag and GitHub Release, then calls
+[Publish validator archive](.github/workflows/publish-validator.yml). It builds
+tagged code, verifies versions, tests installation and uploads a semver `.tgz`.
+Both packages stay private; there is no registry publication or checksum sidecar.
+
+Manually dispatch the publisher on main with an existing stable release tag to
+backfill or retry an upload. It requires a published release from main history
+and never replaces existing assets. A release is source-only until upload
+succeeds. Consumer adoption remains separate work.
 
 Before enabling releases, the owner must require reviewed PRs and the **tests**
 check on `main`, restrict direct pushes after bootstrap, and allow Actions to

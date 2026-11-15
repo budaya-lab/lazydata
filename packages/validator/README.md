@@ -4,9 +4,24 @@ Read-only validation for dataset metadata and local repositories. This private,
 unreleased package is the new home of the shared validator previously developed
 in `tpl-dataset`. It has no runtime dependencies or SvelteKit imports.
 
+## Install
+
+Use Node.js 24+. Choose a release with a compiled `.tgz` asset, not GitHub's
+source archive:
+
+```sh
+VERSION=0.1.0
+pnpm add --save-exact --ignore-scripts \
+  "https://github.com/budaya-lab/lazydata/releases/download/v${VERSION}/lazydata-validator-${VERSION}.tgz"
+pnpm exec lazydata-validate /path/to/dataset
+```
+
+No compiler or build step is needed. Pin the version URL and commit the lockfile.
+Install by URL; the package is not published to a registry.
+
 ## Portable API
 
-Import from `@lazydata/validator` after building the package:
+Import from the installed package:
 
 | Function | Result |
 | --- | --- |
@@ -98,8 +113,10 @@ confidentiality, licensing authority or permission to publish.
 compiled JavaScript, declarations, this guide and matched policy. The package
 name is a local workspace name, not a claim to a registry namespace. Release Please
 manages reviewed repository-wide GitHub releases and keeps this package version
-aligned with the workspace. Packages stay private; no registry publication or
-compiled release-archive upload is configured. See the
+aligned with the workspace. The publisher attaches
+`lazydata-validator-VERSION.tgz` only after checking installation of the exact
+archive. Packages stay private; no registry publication or standalone checksum
+file is used. See the
 [release guide](https://github.com/budaya-lab/lazydata#ci-and-releases).
 
 Future consumers must pin one reviewed code-and-policy release. Do not fetch
