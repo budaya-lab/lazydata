@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 import { getStage, stageLabel } from '@lazydata/validator';
-
-const policy = JSON.parse(readFileSync(new URL('../dataset.config.json', import.meta.url), 'utf8'));
+import policy from '../dataset.config.json' with { type: 'json' };
 
 test('stage helpers allow missing catalogue stages and use configured labels', () => {
   assert.equal(getStage(undefined, policy), undefined);

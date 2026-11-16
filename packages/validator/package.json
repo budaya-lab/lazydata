@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "types": "./dist/index.d.ts",
   "exports": {
@@ -29,7 +29,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "pnpm build && node --test test/*.test.mjs"
+    "typecheck": "pnpm build && tsc -p ../../tsconfig.test.json",
+    "test": "pnpm build && node --test test/*.test.ts"
   }
 }
