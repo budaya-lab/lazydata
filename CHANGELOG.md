@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.1](https://github.com/budaya-lab/lazydata/compare/v1.0.0...v1.0.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **metadata:** avoid coercing invalid resource names ([208ee13](https://github.com/budaya-lab/lazydata/commit/208ee13ced36071937c8914582b80f03a2dcb6fc))
+* **metadata:** avoid coercing invalid resource names ([dc2decc](https://github.com/budaya-lab/lazydata/commit/dc2decc6ebcc44358d7ad7bafc1617ea717c4858))
+
 ## [1.0.0](https://github.com/budaya-lab/lazydata/compare/v0.1.0...v1.0.0) (2026-11-16)
 
 
