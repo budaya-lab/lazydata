@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.11.2",
   "engines": {
-    "node": ">=24"
+    "node": ">=24",
+    "pnpm": ">=12 <13"
   },
   "scripts": {
     "build": "pnpm --filter @lazydata/validator build",

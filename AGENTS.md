@@ -2,7 +2,7 @@
 
 Read `README.md`, `docs/architecture.md` and `packages/validator/README.md` first.
 
-- Use pnpm at this workspace root. Keep its lockfile and package-manager pin.
+- Use pnpm 12.x at this workspace root and in CI. Keep its lockfile; do not require an exact pnpm patch version.
 - Target Node.js 24 LTS; keep CI, engine requirements, Node types and docs aligned.
 - Only TypeScript and Node types are approved dependencies for this slice.
 - The SvelteKit application is deferred. Do not scaffold UI or add its dependencies yet.
