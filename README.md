@@ -10,7 +10,7 @@ usage and APIs. Template, Steward and portal adoption are separate changes.
 
 ## Development
 
-Use Node.js 24 LTS and pnpm 12.11.2. From this directory:
+Use Node.js 24 LTS and pnpm 12.x. From this directory:
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts

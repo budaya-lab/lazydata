@@ -36,6 +36,9 @@ jobs:
         run: |
           cp packages/validator/test/install.test.ts "$RUNNER_TEMP/validator-install.test.ts"
           cp scripts/check-release-version.ts "$RUNNER_TEMP/check-release-version.ts"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "12"
       - uses: actions/checkout@v4
         with:
           ref: refs/tags/${{ inputs.tag }}
@@ -47,7 +50,6 @@ jobs:
         run: |
           test "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = false
           git merge-base --is-ancestor HEAD refs/remotes/origin/main
-      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
