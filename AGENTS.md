@@ -4,8 +4,9 @@ Read `README.md`, `docs/architecture.md` and `packages/validator/README.md` firs
 
 - Use pnpm 12.x at this workspace root and in CI. Keep its lockfile; do not require an exact pnpm patch version.
 - Target Node.js 24 LTS; keep CI, engine requirements, Node types and docs aligned.
-- Only TypeScript and Node types are approved dependencies for this slice.
-- The SvelteKit application is deferred. Do not scaffold UI or add its dependencies yet.
+- The approved app slice is read-only dataset discovery in `apps/web/`; task records live in `../tasks/steward-rebuild/`.
+- Approved app tooling: Svelte 5, SvelteKit 3, Node adapter, Vite/Svelte plugin, svelte-check and app-local TypeScript 6. Preserve validator TypeScript 7 and Node types.
+- Use the installed Svelte skills/MCP docs and autofixer for components. Plain semantic HTML only; no CSS, editing, descriptor reads or dataset writes in this slice.
 - Keep portable checks free of I/O, Node globals and framework dependencies.
 - Keep Node filesystem checks and the CLI in separate entry points.
 - Treat parsed metadata and policy as unknown until runtime validation succeeds.
@@ -16,7 +17,7 @@ Read `README.md`, `docs/architecture.md` and `packages/validator/README.md` firs
 - Prefer small functions, clear types and blank lines between logical steps.
 - Add behavior tests, not source-layout assertions. Preserve isolated package and VM checks.
 - Author tests/fixtures in TypeScript and typecheck them; keep generated JavaScript consumer probes as JavaScript.
-- Run `pnpm typecheck`, `pnpm test`, `pnpm audit` and `git diff --check` before handoff.
+- Run `pnpm typecheck`, `pnpm test`, app `check`/`test`, `pnpm audit` and `git diff --check` before handoff. App tests use synthetic temporary folders only.
 - No separate linter is configured. Say so rather than claiming lint passed.
 - Keep workflow **Validate lazydata** and job/check **tests** stable; release gating uses that workflow name.
 - Preserve successful-current-main-push release guards, the pinned Release Please action and built-in token.

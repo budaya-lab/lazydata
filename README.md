@@ -1,7 +1,8 @@
 # Lazydata
 
-Shared, read-only dataset validation. A TypeScript/SvelteKit rebuild of Dataset
-Steward is planned; the web application is not implemented yet.
+Shared, read-only dataset validation and an early local Dataset Steward rebuild.
+The [SvelteKit app](apps/web/README.md) currently lists dataset folders only;
+editing, validation display and dataset creation are not implemented.
 
 ## Use the validator
 
@@ -24,8 +25,9 @@ No separate linter. Use `pnpm pack:validator` to build a local archive.
 
 ## CI and releases
 
-[Validate lazydata](.github/workflows/validate-lazydata.yml) runs typecheck,
-tests/build and audit on PRs, main pushes and manual dispatch. Its check is `tests`.
+[Validate lazydata](.github/workflows/validate-lazydata.yml) runs validator
+checks, Steward checks/build/HTTP tests and audit on PRs, main pushes
+and manual dispatch. Its check is `tests`.
 
 [Release Please](.github/workflows/release.yml) runs after successful CI on current
 main. Review and validate its release PR before merging. A release then triggers

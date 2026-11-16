@@ -1,0 +1,25 @@
+{
+  "name": "@lazydata/steward",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=12 <13"
+  },
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "start": "node scripts/start.ts",
+    "check": "svelte-kit sync && svelte-check --fail-on-warnings && tsc -p tsconfig.test.json",
+    "test": "pnpm build && node --test --test-timeout=60000 test/*.test.ts"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-node": "6.0.1",
+    "@sveltejs/kit": "3.1.1",
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "svelte": "5.57.3",
+    "svelte-check": "4.7.8",
+    "typescript": "6.0.3",
+    "vite": "8.3.6"
+  }
+}

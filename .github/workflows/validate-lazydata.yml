@@ -28,5 +28,9 @@ jobs:
         run: pnpm typecheck
       - name: Test, build and verify packed consumers
         run: pnpm test
+      - name: Check and test read-only Steward discovery
+        run: |
+          pnpm --filter @lazydata/steward check
+          pnpm --filter @lazydata/steward test
       - name: Audit dependencies
         run: pnpm audit --audit-level=high
