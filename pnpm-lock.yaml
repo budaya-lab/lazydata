@@ -16,6 +16,10 @@ importers:
         version: 7.0.2
 
   apps/web:
+    dependencies:
+      '@lazydata/validator':
+        specifier: workspace:*
+        version: link:../../packages/validator
     devDependencies:
       '@sveltejs/adapter-node':
         specifier: 6.0.1

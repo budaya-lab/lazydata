@@ -94,7 +94,7 @@ test('local startup rejects a socket override before loading the server', async 
 });
 
 for (const mode of ['dev', 'built'] as const) {
-  test(`${mode}: lists escaped names without reading descriptors, following links or writing files`, async (t) => {
+  test(`${mode}: lists escaped names and statuses without following links or writing files`, async (t) => {
     const base = await fixture(t);
     const root = join(base, 'datasets');
     const outside = join(base, 'outside');
@@ -114,7 +114,7 @@ for (const mode of ['dev', 'built'] as const) {
       assert.equal(response.status, 200);
       const html = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
       assert.match(html, /<h1>Datasets<\/h1>/);
-      const names = [...html.matchAll(/<li>(.*?)<\/li>/gs)].map((match) => match[1]);
+      const names = [...html.matchAll(/<li><a href="[^"]+">(.*?)<\/a>/gs)].map((match) => match[1]);
       assert.equal(names.length, 3);
       assert.match(names[0], /^ds-&lt;b(?:>|&gt;)&amp;$/);
       assert.deepEqual(names.slice(1), ['ds-alpha', 'ds-zeta']);
@@ -136,6 +136,161 @@ for (const mode of ['dev', 'built'] as const) {
     });
     assert.equal(foreignHost, 403, logs());
     assert.deepEqual(await snapshot(base), before);
+  });
+
+  test(`${mode}: opens the selected descriptor as escaped text without writes`, async (t) => {
+    const base = await fixture(t);
+    const root = join(base, 'datasets');
+    const name = 'ds-100% #?';
+    const directory = join(root, name);
+    const outside = join(base, 'outside');
+    await fs.mkdir(directory, { recursive: true });
+    await fs.mkdir(join(root, 'ds-missing'));
+    await fs.mkdir(join(root, 'ds-literal%2F'));
+    await fs.writeFile(join(root, 'ds-literal%2F/datapackage.json'), 'literal percent marker');
+    await fs.mkdir(outside);
+    const text = '{invalid JSON\n<script>not executable</script> & raw text\n';
+    const path = join(directory, 'datapackage.json');
+    await fs.writeFile(path, text);
+    await fs.writeFile(join(outside, 'datapackage.json'), 'outside marker');
+    const before = await snapshot(base);
+    const { url } = await serve(t, mode, root);
+    const listing = await (await fetch(url)).text();
+    const links = [...listing.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
+    const href = links.find((value) => value.includes('/datasets/'));
+    assert.ok(href);
+    const selected = new URL(href, url);
+    const response = await fetch(selected);
+    assert.equal(response.status, 200);
+    const html = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
+    assert.match(html, /datapackage\.json/);
+    assert.match(html, /<pre><code>\{invalid JSON/);
+    assert.match(html, /&lt;script(?:>|&gt;)not executable&lt;\/script(?:>|&gt;)/);
+    assert.doesNotMatch(html, /<script>|<textarea|<form|<style\b|outside marker/);
+    assert.equal(html.includes(root), false);
+    const back = html.match(/<a href="([^"]+)">Back to datasets<\/a>/);
+    assert.ok(back);
+    assert.equal((await fetch(new URL(back[1], selected))).status, 200);
+    const literal = links.find((value) => value.includes('ds-literal'));
+    assert.ok(literal);
+    const literalResponse = await fetch(new URL(literal, url));
+    assert.equal(literalResponse.status, 200);
+    assert.match(await literalResponse.text(), /literal percent marker/);
+
+    for (const leaf of ['ds-missing', 'ds-unknown']) {
+      const missing = await fetch(`${url}/datasets/${leaf}`);
+      assert.equal(missing.status, 404);
+      assert.match(await missing.text(), /no datapackage\.json|Dataset not found/);
+    }
+    for (const leaf of ['../outside', 'ds-missing/../../outside']) {
+      const denied = await fetch(`${url}/datasets/${encodeURIComponent(leaf)}`);
+      assert.ok([400, 404].includes(denied.status));
+      assert.doesNotMatch(await denied.text(), /outside marker/);
+    }
+    assert.deepEqual(await snapshot(base), before);
+
+    await fs.unlink(path);
+    await fs.symlink(join(outside, 'datapackage.json'), path);
+    const linked = await fetch(selected);
+    assert.equal(linked.status, 500);
+    assert.doesNotMatch(await linked.text(), /outside marker/);
+    assert.equal(await fs.readFile(join(outside, 'datapackage.json'), 'utf8'), 'outside marker');
+  });
+
+  test(`${mode}: shows supplied metadata and shared issues without migrating or scanning resources`, async (t) => {
+    const base = await fixture(t);
+    const root = join(base, 'datasets');
+    const modern = {
+      name: 'modern', title: 'Supplied title', description: 'Supplied description',
+      keywords: ['task:classification', 'project:example', 'stage:curated'],
+      contributors: [{ title: 'Alice', roles: ['creator'] }, { title: 'Bob', roles: ['reviewer'] }],
+      resources: [{ name: 'input', title: 'Input', path: 'missing.csv' }],
+    };
+    const cases = {
+      modern: JSON.stringify(modern),
+      legacy: JSON.stringify({ name: 'legacy', creator: 'Legacy person', task: 'Legacy task' }),
+      malformed: '{invalid JSON',
+      unsafe: JSON.stringify({ ...modern, title: '<img src=x onerror=alert(1)>',
+        contributors: [{ title: '<script>creator</script>', roles: ['creator'] }],
+        resources: [{ name: 'bad<script>', path: [], count: -1 }] }),
+      conflicts: JSON.stringify({ ...modern, keywords: ['task:one', 'task:two', 'project:', 'stage:unknown', 'stage:master'] }),
+    };
+    for (const [name, text] of Object.entries(cases)) {
+      const directory = join(root, `ds-${name}`);
+      await fs.mkdir(directory, { recursive: true });
+      await fs.writeFile(join(directory, 'datapackage.json'), text);
+      await fs.writeFile(join(directory, 'dataset.config.json'), '{invalid local policy');
+      await fs.writeFile(join(directory, 'buckets.csv'), 'not a valid bucket summary');
+    }
+    const before = await snapshot(base);
+    const { url, logs } = await serve(t, mode, root);
+    const pages: Record<string, string> = {};
+    for (const name of Object.keys(cases)) {
+      const response = await fetch(`${url}/datasets/ds-${name}`);
+      assert.equal(response.status, 200, logs());
+      pages[name] = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
+      assert.match(pages[name], /<h2>Metadata validation<\/h2>/);
+      assert.match(pages[name], /Resource files and buckets are not read/);
+      assert.doesNotMatch(pages[name], /<style\b|rel="stylesheet"|<textarea|<form|Dataset is valid/);
+      assert.equal(pages[name].includes(root), false);
+    }
+    assert.match(pages.modern, /<dt>Creators<\/dt>\s*<dd>Alice<\/dd>/);
+    assert.match(pages.modern, /<dt>Task<\/dt>\s*<dd>classification<\/dd>/);
+    assert.match(pages.modern, /<dt>Project<\/dt>\s*<dd>example<\/dd>/);
+    assert.match(pages.modern, /<dt>Stage<\/dt>\s*<dd>curated<\/dd>/);
+    assert.match(pages.modern, /Metadata checks passed/);
+    for (const label of ['Creators', 'Task', 'Project', 'Stage']) {
+      assert.match(pages.legacy, new RegExp(`<dt>${label}</dt>\\s*<dd>Not supplied</dd>`));
+    }
+    assert.match(pages.legacy, /title is required/);
+    assert.match(pages.legacy, /keywords must contain exactly one nonempty task: keyword/);
+    assert.match(pages.malformed, /datapackage.json is not valid JSON/);
+    assert.match(pages.malformed, /<pre><code>\{invalid JSON/);
+    assert.doesNotMatch(pages.unsafe, /<img|<script>|\[object Object\]/);
+    assert.match(pages.unsafe, /&lt;img/);
+    assert.match(pages.unsafe, /resource bad&lt;script(?:>|&gt;) count must be/);
+    assert.match(pages.conflicts, /<dt>Task<\/dt>\s*<dd>one; two<\/dd>/);
+    assert.match(pages.conflicts, /<dt>Stage<\/dt>\s*<dd>unknown; master<\/dd>/);
+    assert.match(pages.conflicts, /keywords must contain at most one known stage/);
+    assert.deepEqual(await snapshot(base), before);
+  });
+
+  test(`${mode}: displays current metadata statuses beside every dataset link`, async (t) => {
+    const base = await fixture(t);
+    const root = join(base, 'datasets');
+    const valid = JSON.stringify({ name: 'example', title: 'Example', description: 'Supplied description',
+      keywords: ['task:example', 'project:example', 'stage:master'],
+      resources: [{ name: 'input', title: 'Input', path: 'missing.csv' }],
+    });
+    for (const name of ['passed', 'issues', 'missing', 'unsafe']) {
+      await fs.mkdir(join(root, `ds-${name}`), { recursive: true });
+    }
+    await fs.writeFile(join(root, 'ds-passed/datapackage.json'), valid);
+    const changed = join(root, 'ds-issues/datapackage.json');
+    await fs.writeFile(changed, '{invalid JSON');
+    const marker = join(base, 'outside-marker');
+    await fs.writeFile(marker, 'outside marker');
+    await fs.symlink(marker, join(root, 'ds-unsafe/datapackage.json'));
+    const before = await snapshot(base);
+    const { url, logs } = await serve(t, mode, root);
+    const response = await fetch(url);
+    assert.equal(response.status, 200, logs());
+    const html = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
+    assert.match(html, /ds-passed<\/a>\s*— Metadata checks passed/);
+    assert.match(html, /ds-issues<\/a>\s*— Metadata issues \(1\)/);
+    assert.match(html, /ds-missing<\/a>\s*— Metadata unavailable:/);
+    assert.match(html, /ds-unsafe<\/a>\s*— Metadata unavailable:/);
+    assert.match(html, /Resource files and buckets are not read/);
+    assert.doesNotMatch(html, /outside marker|<style\b|Dataset is valid/);
+    assert.equal(html.includes(root), false);
+    assert.deepEqual(await snapshot(base), before);
+
+    await fs.writeFile(changed, valid);
+    const fixed = await snapshot(base);
+    const refreshed = await fetch(url);
+    assert.equal(refreshed.status, 200, logs());
+    assert.match((await refreshed.text()).replace(/<!--[\s\S]*?-->/g, ''), /ds-issues<\/a>\s*— Metadata checks passed/);
+    assert.deepEqual(await snapshot(base), fixed);
   });
 
   test(`${mode}: distinguishes empty roots from failed reads`, async (t) => {

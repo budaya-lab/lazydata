@@ -4,9 +4,10 @@ Read `README.md`, `docs/architecture.md` and `packages/validator/README.md` firs
 
 - Use pnpm 12.x at this workspace root and in CI. Keep its lockfile; do not require an exact pnpm patch version.
 - Target Node.js 24 LTS; keep CI, engine requirements, Node types and docs aligned.
-- The approved app slice is read-only dataset discovery in `apps/web/`; task records live in `../tasks/steward-rebuild/`.
+- Approved app slices: discovery, read-only descriptors, supplied metadata summary and shared metadata-validation display in `apps/web/`; task records live in `../tasks/steward-rebuild/`.
 - Approved app tooling: Svelte 5, SvelteKit 3, Node adapter, Vite/Svelte plugin, svelte-check and app-local TypeScript 6. Preserve validator TypeScript 7 and Node types.
-- Use the installed Svelte skills/MCP docs and autofixer for components. Plain semantic HTML only; no CSS, editing, descriptor reads or dataset writes in this slice.
+- Use the installed Svelte skills/MCP docs and autofixer for components. Plain semantic HTML only; no CSS, editing or dataset writes. Keep bounded descriptor reads and escape all displayed text.
+- The app consumes the existing workspace validator's compiled public API and matched policy. Metadata checks only; no resource-file/bucket reads, migration or inferred metadata.
 - Keep portable checks free of I/O, Node globals and framework dependencies.
 - Keep Node filesystem checks and the CLI in separate entry points.
 - Treat parsed metadata and policy as unknown until runtime validation succeeds.

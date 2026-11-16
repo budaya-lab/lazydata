@@ -7,11 +7,14 @@
     "pnpm": ">=12 <13"
   },
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
+    "dev": "pnpm --filter @lazydata/validator build && vite dev",
+    "build": "pnpm --filter @lazydata/validator build && vite build",
     "start": "node scripts/start.ts",
-    "check": "svelte-kit sync && svelte-check --fail-on-warnings && tsc -p tsconfig.test.json",
+    "check": "pnpm --filter @lazydata/validator build && svelte-kit sync && svelte-check --fail-on-warnings && tsc -p tsconfig.test.json",
     "test": "pnpm build && node --test --test-timeout=60000 test/*.test.ts"
+  },
+  "dependencies": {
+    "@lazydata/validator": "workspace:*"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "6.0.1",

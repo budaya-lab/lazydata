@@ -1,14 +1,16 @@
-<script lang="ts">
-  import { page } from '$app/state';
-</script>
-
 <svelte:options runes={true} />
 
+<script lang="ts">
+    import { resolve } from "$app/paths";
+    import { page } from "$app/state";
+</script>
+
 <svelte:head>
-  <title>Dataset discovery error — Lazydata</title>
+    <title>Dataset error — Lazydata</title>
 </svelte:head>
 
 <main>
-  <h1>Dataset discovery error</h1>
-  <p>{page.error?.message}</p>
+    <h1>Dataset error</h1>
+    <p>{page.error?.message}</p>
+    <a href={resolve("/")}>Back to datasets</a>
 </main>

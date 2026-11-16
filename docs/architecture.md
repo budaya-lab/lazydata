@@ -9,9 +9,17 @@ Local tools ─────────> @lazydata/validator/repository
 
 lazydata-validate ────> repository adapter
 
-Future SvelteKit UI ─> portable checks
-Future server code ─> repository adapter (never shipped to the browser)
+Steward server load ─> portable metadata checks + matched policy
+Future full server validation ─> repository adapter (never shipped to the browser)
 ```
+
+The local Steward app consumes compiled public exports from the existing
+workspace validator package. Its server-only adapter parses descriptor text,
+shows supplied values and returns portable metadata-check issues. It does not
+read resources/buckets or infer/migrate metadata. Raw text remains visible on
+invalid JSON. App dev/check/build explicitly compile the validator first; the
+shared package remains framework-free. External consumers still use the pinned
+compiled release archives described below.
 
 The validator owns the common rules and matched default policy. It accepts
 untrusted input and returns error strings. Invalid policy and invalid bucket
