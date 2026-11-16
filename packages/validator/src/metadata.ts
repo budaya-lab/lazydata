@@ -129,6 +129,7 @@ export function validateMetadata(data: unknown, policy: unknown): string[] {
     }
 
     requiredFields(resource, policy.resource.requiredFields, errors, 'resource ');
+    const resourceLabel = typeof resource.name === 'string' ? resource.name : '(unnamed)';
 
     if (
       resource.name !== undefined &&
@@ -152,7 +153,7 @@ export function validateMetadata(data: unknown, policy: unknown): string[] {
         resource.count < 0
       )
     ) {
-      errors.push(`resource ${resource.name ?? '(unnamed)'} count must be a non-negative safe integer`);
+      errors.push(`resource ${resourceLabel} count must be a non-negative safe integer`);
     }
 
     if (
@@ -163,7 +164,7 @@ export function validateMetadata(data: unknown, policy: unknown): string[] {
     }
 
     if (resource.data !== undefined) {
-      errors.push(`resource ${resource.name ?? '(unnamed)'} must reference local file path(s)`);
+      errors.push(`resource ${resourceLabel} must reference local file path(s)`);
     }
 
     if (resource.path === undefined) continue;
@@ -171,7 +172,7 @@ export function validateMetadata(data: unknown, policy: unknown): string[] {
     const paths: unknown[] = Array.isArray(resource.path) ? resource.path : [resource.path];
 
     if (paths.length === 0) {
-      errors.push(`resource ${resource.name ?? '(unnamed)'} must include at least one path`);
+      errors.push(`resource ${resourceLabel} must include at least one path`);
     }
 
     if (paths.some((path) => !isResourcePath(path))) {

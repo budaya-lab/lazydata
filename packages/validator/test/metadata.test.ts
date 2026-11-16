@@ -80,6 +80,43 @@ test('policy changes control required fields and other-keyword allowance', () =>
   }, extraPrefix), []);
 });
 
+for (const [issue, fields] of [
+  ['count must be a non-negative safe integer', { count: -1 }],
+  ['must reference local file path(s)', { data: [] }],
+  ['must include at least one path', { path: [] }],
+] as const) {
+  test(`malformed resource names return issues when reporting: ${issue}`, () => {
+    for (const name of [
+      { toString: null },
+      { toString: 42 },
+      {},
+      [],
+      [{ toString: null }],
+      42,
+      true,
+      null,
+      undefined,
+      Symbol('invalid'),
+      { [Symbol.toPrimitive]: () => assert.fail('resource names must not be coerced') },
+    ]) {
+      const errors = validateMetadata({
+        ...data,
+        resources: [{ ...data.resources[0], name, ...fields }],
+      }, policy);
+
+      assert.ok(errors.some((error) => /resource name is required|valid lowercase name/.test(error)));
+      assert.ok(errors.includes(`resource (unnamed) ${issue}`));
+    }
+
+    const errors = validateMetadata({
+      ...data,
+      resources: [{ ...data.resources[0], ...fields }],
+    }, policy);
+
+    assert.ok(errors.includes(`resource input ${issue}`));
+  });
+}
+
 test('invalid policy fails instead of reporting a successful metadata validation', () => {
   assert.throws(() => validateMetadata(data, { ...policy, schemaVersion: 2 }), /dataset\.config/);
 });
