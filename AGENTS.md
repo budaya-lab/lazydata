@@ -1,7 +1,6 @@
 # Lazydata
 
 Read `README.md`, `docs/architecture.md` and `packages/validator/README.md` first.
-This is a fresh TypeScript project. Do not reuse the old Python/Textual experiment.
 
 - Use pnpm at this workspace root. Keep its lockfile and package-manager pin.
 - Target Node.js 24 LTS; keep CI, engine requirements, Node types and docs aligned.
