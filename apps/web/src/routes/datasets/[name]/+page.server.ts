@@ -4,6 +4,8 @@ import { readDatasetSnapshot } from "../../../lib/server/dataset-text.ts";
 import { DiscoveryError } from "../../../lib/server/discovery.ts";
 import { inspectMetadata, stageOptions } from "../../../lib/server/metadata.ts";
 import { readReadme } from "../../../lib/server/readme.ts";
+import { resourceFormModel, type ResourceOption } from '../../../lib/resource-fields.ts';
+import { listResourcePaths, ResourceReadError } from '../../../lib/server/resource-files.ts';
 import type { PageServerLoad } from "./$types";
 
 export const load = (async ({ params, url }) => {
@@ -16,7 +18,16 @@ export const load = (async ({ params, url }) => {
 		const snapshot = await readDatasetSnapshot(process.env.DATASET_ROOT, params.name, 'datapackage.json');
 		if (view === 'datapackage') return { name: params.name, view: 'datapackage' as const, text: snapshot.text };
 		const { issues, overview, keywordFields } = inspectMetadata(snapshot.text);
-		return { name: params.name, view: 'metadata' as const, issues, overview, keywordFields, stageOptions };
+		let options: ResourceOption[] = [];
+		let resourceMessage = '';
+		try { options = await listResourcePaths(process.env.DATASET_ROOT, params.name); } catch (cause) {
+			if (!(cause instanceof ResourceReadError)) throw cause;
+			if (cause.status === 500) console.error('Resource path listing failed.');
+			resourceMessage = cause.message;
+		}
+		const resourceModel = resourceFormModel(snapshot.text, options);
+		if (resourceMessage) resourceModel.message = [resourceModel.message, resourceMessage].filter(Boolean).join(' ');
+		return { name: params.name, view: 'metadata' as const, issues, overview, keywordFields, stageOptions, resourceModel };
 	} catch (cause) {
 		if (cause instanceof DescriptorError || cause instanceof DiscoveryError) {
 			console.error(cause);

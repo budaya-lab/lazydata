@@ -4,6 +4,8 @@
     import { Input } from "$lib/components/ui/input/index.js";
     import { Textarea } from "$lib/components/ui/textarea/index.js";
     import MetadataKeywords from "$lib/components/metadata-keywords.svelte";
+    import MetadataResources from "$lib/components/metadata-resources.svelte";
+    import type { ResourceModel } from "$lib/resource-fields.ts";
     import MetadataVersionCreated from "$lib/components/metadata-version-created.svelte";
 
     let {
@@ -13,6 +15,8 @@
         version,
         created,
         keywordFields,
+        resourceModel,
+        resourceCountUrl,
         stageOptions,
         issues,
         reloadUrl,
@@ -23,6 +27,8 @@
         version: string | null;
         created: string | null;
         keywordFields: { tasks: string[]; projects: string[]; stage: string; extraKeywords: string[] };
+        resourceModel: ResourceModel;
+        resourceCountUrl: string;
         stageOptions: { value: string; label: string }[];
         issues: string[];
         reloadUrl: string;
@@ -125,6 +131,7 @@
             </Field.Group>
         </Field.Set>
         <MetadataKeywords {...keywordFields} {stageOptions} />
+        <MetadataResources model={resourceModel} countUrl={resourceCountUrl} />
     </Field.Group>
     <section
         id="metadata-validation"
@@ -142,8 +149,8 @@
         {:else}<p class="text-muted-foreground">Metadata checks passed.</p>{/if}
     </section>
     <p class="max-w-prose text-sm text-muted-foreground">
-        Resource files and buckets are not read. These checks do not authorize
-        publication.
+        Shared checks do not read resources or buckets. Resource counts are separate,
+        read-only file reads. These checks do not authorize publication.
     </p>
     <div
         class="sticky bottom-0 flex flex-col gap-2 border-t bg-background py-3"

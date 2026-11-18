@@ -291,8 +291,9 @@ for (const mode of ['dev', 'built'] as const) {
         }
       }
       assert.match(pages[name], /Metadata validation/);
-      assert.match(pages[name], /Resource\s+files\s+and\s+buckets\s+are\s+not\s+read/);
-      assert.equal([...pages[name].matchAll(/<(?:input|textarea)\b/g)].length, 9);
+      assert.match(pages[name], /Shared\s+checks\s+do\s+not\s+read\s+resources\s+or\s+buckets/);
+      const overviewAndKeywords = [...pages[name].matchAll(/\bname="(?:name|title|description|version|createdDate|created|metadata-(?:tasks|projects|extra-keywords))"/g)];
+      assert.equal(overviewAndKeywords.length, 9);
       assert.doesNotMatch(pages[name], /name="submission"/);
       assert.doesNotMatch(pages[name], /<pre\b|<dl\b|Dataset is valid/);
       assert.equal(pages[name].includes(root), false);
@@ -412,6 +413,46 @@ for (const mode of ['dev', 'built'] as const) {
     assert.match(refreshed, /Stage is required\./);
     assert.doesNotMatch(refreshed, /South East Asia/);
     await fs.writeFile(path, JSON.stringify(descriptor));
+    assert.deepEqual(await snapshot(root), before);
+  });
+
+  test(`${mode}: edits resource rows locally and serves bounded read-only counts for safe dataset paths`, async (t) => {
+    const root = await fixture(t); const directory = join(root, 'ds-resources');
+    await fs.mkdir(join(directory, 'images.v2/nested'), { recursive: true });
+    await fs.writeFile(join(directory, 'items.csv'), 'column\nsecret-one\nsecret-two\n');
+    await fs.writeFile(join(directory, 'images.v2/nested/one.bin'), 'directory marker');
+    await fs.writeFile(join(directory, 'datapackage.json'), JSON.stringify({ resources: [{ path: 'items.csv', title: 'Supplied resource', count: 999 }] }));
+    await fs.writeFile(join(root, 'outside.json'), '["outside private marker"]');
+    await fs.symlink(join(root, 'outside.json'), join(directory, 'linked.json'));
+    const before = await snapshot(root);
+    const { url, logs } = await serve(t, mode, root);
+    const html = (await (await fetch(`${url}/datasets/ds-resources?view=metadata`)).text()).replace(/<!--[\s\S]*?-->/g, '');
+    assert.ok(html.includes('id="root/resources"'), logs());
+    assert.match(html, /aria-label="Resources"/);
+    for (const [key, value] of [['name', 'items'], ['path', 'items.csv'], ['title', 'Supplied resource'], ['format', 'csv']]) {
+      const control = html.match(new RegExp(`<input\\b(?=[^>]*name="resource-0-${key}")[^>]*>`))?.[0];
+      assert.ok(control, key); assert.ok(control.includes(`value="${value}"`));
+      if (policy.resource.requiredFields.includes(key as 'name' | 'path' | 'title')) assert.match(control, /\srequired(?:[\s=>])/);
+    }
+    assert.match(html, /<datalist\b/); assert.ok(html.includes('value="images.v2/"'));
+    assert.match(html, /Add another resource/); assert.match(html, /aria-label="Remove resource items"/);
+    assert.doesNotMatch(html, /<input\b[^>]*name="resource-0-count"/);
+    assert.match(html, /Not counted/);
+    const endpoint = `${url}/datasets/ds-resources/resources`;
+    const result = await fetch(`${endpoint}?path=items.csv`);
+    assert.equal(result.status, 200, logs());
+    assert.deepEqual(await result.json(), { status: 'counted', kind: 'file', value: 2, unit: 'rows' });
+    assert.equal(result.headers.get('cache-control'), 'no-store');
+    const folder = await fetch(`${endpoint}?path=images.v2%2F`);
+    assert.deepEqual(await folder.json(), { status: 'counted', kind: 'directory', value: 1, unit: 'files' });
+    for (const path of ['../outside.json', 'linked.json', '.env', 'https://example.com/data.csv']) {
+      const denied = await fetch(`${endpoint}?${new URLSearchParams({ path })}`);
+      assert.equal(denied.status, 400); assert.doesNotMatch(await denied.text(), /outside private marker|secret-one/);
+    }
+    assert.equal((await fetch(endpoint)).status, 400);
+    assert.equal((await fetch(`${endpoint}?path=items.csv&path=items.csv`)).status, 400);
+    assert.equal((await fetch(`${endpoint}?path=items.csv`, { headers: { origin: 'https://untrusted.example' } })).status, 403);
+    assert.equal((await fetch(endpoint, { method: 'POST', headers: { origin: url } })).status, 405);
     assert.deepEqual(await snapshot(root), before);
   });
 
