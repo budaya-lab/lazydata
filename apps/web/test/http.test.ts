@@ -253,6 +253,7 @@ for (const mode of ['dev', 'built'] as const) {
       keywords: ['task:classification', 'project:example', 'stage:curated'],
       contributors: [{ title: 'Alice', roles: ['creator'] }, { title: 'Bob', roles: ['reviewer'] }],
       resources: [{ name: 'input', title: 'Input', path: 'missing.csv' }],
+      licenses: [{ name: 'MIT' }, { name: 'Custom-License' }],
       sources: [
         { title: 'Web source', path: 'https://example.org/catalogue' },
         { title: 'Local source', path: 'references/source.csv' },
@@ -305,6 +306,16 @@ for (const mode of ['dev', 'built'] as const) {
     assert.match(pages.modern, /Metadata checks passed/);
     assert.match(pages.modern, /aria-label="Sources"/);
     assert.match(pages.modern, /Add a source/);
+    assert.match(pages.modern, /aria-label="Licenses"/);
+    assert.match(pages.modern, /id="metadata-licenses-suggestions"/);
+    assert.match(pages.modern, /<option value="MIT"><\/option>/);
+    assert.match(pages.modern, /<option value="Apache-2\.0"><\/option>/);
+    assert.ok(pages.modern.includes('>MIT</span>'));
+    assert.ok(pages.modern.includes('>Custom-License</span>'));
+    const licenseInput = pages.modern.match(/<input\b(?=[^>]*id="metadata-licenses")[^>]*>/)?.[0];
+    assert.ok(licenseInput);
+    assert.match(licenseInput, /list="metadata-licenses-suggestions"/);
+    assert.doesNotMatch(licenseInput, /\srequired(?:[\s=>])/);
     for (const [name, value] of [
       ['source-0-title', 'Web source'],
       ['source-0-path', 'https://example.org/catalogue'],
@@ -563,7 +574,7 @@ for (const mode of ['dev', 'built'] as const) {
       assert.ok(button, label); assert.match(button[0], /\bdisabled(?:[=\s>])/);
     }
     assert.match(html, /Reload file/);
-    assert.equal([...html.matchAll(/<(?:input|textarea)\b/g)].length, 9);
+    assert.equal([...html.matchAll(/<(?:input|textarea)\b/g)].length, 10);
     for (const [id, message] of [['tasks', 'Tasks are required.'], ['projects', 'Projects are required.'], ['stage', 'Stage is required.']]) {
       const control = html.match(new RegExp(`<(?:input|select)\\b(?=[^>]*id="metadata-${id}")[^>]*>`))?.[0];
       assert.ok(control); assert.match(control, /\srequired(?:[\s=>])/);

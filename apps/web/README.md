@@ -3,8 +3,8 @@
 An early read-only Svelte 5/SvelteKit app. It lists immediate, non-symlink `ds-*`
 directories under an explicitly supplied parent folder, including folders without
 metadata. Select a dataset to open its rendered README. Metadata contains a form
-Overview/Keywords/Resources/Sources UI and read-only checks; datapackage.json separately shows escaped raw
-text, even when malformed. The form is being implemented one step at a time.
+Overview/Keywords/Resources/Licenses/Sources UI and read-only checks;
+datapackage.json separately shows escaped raw text, even when malformed. The form is being implemented one step at a time.
 Required labels use `*`, explained above the fields. Optional labels are unmarked;
 native/ARIA required states and validation are unchanged.
 
@@ -80,6 +80,12 @@ path. The form validates this syntax locally. It does not fetch URLs, read paths
 or alter saved-descriptor validation policy. Existing source values are retained
 only as local prefill; unsupported types stay blank and invalid rather than being
 coerced. Adding/removing/editing rows changes no files.
+
+Licenses uses an optional name-only tag field. Common SPDX identifiers are
+suggested, and custom identifiers are allowed subject to shared validation.
+Supplied name strings are prefilled unchanged; path-only or malformed entries
+show a warning rather than being coerced. Each tag maps locally to a Data Package
+license `name`; no file is written.
 
 There is no save endpoint, writer, automatic Created date or dataset creation.
 Save and Reset are disabled placeholders. The app never writes dataset files,

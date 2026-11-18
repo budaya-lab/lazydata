@@ -11,16 +11,24 @@
         label,
         value = $bindable(),
         required = false,
+        suggestions = [],
+        helpId = "metadata-keywords-help",
+        validationMessage,
     }: {
         id: string;
         label: string;
         value: string[];
         required?: boolean;
+        suggestions?: readonly string[];
+        helpId?: string;
+        validationMessage?: string;
     } = $props();
     let draft = $state("");
     let input = $state<HTMLInputElement | null>(null);
     let announcement = $state("");
-    let invalid = $derived(required && !hasTags(value));
+    let invalid = $derived(
+        Boolean(validationMessage) || (required && !hasTags(value)),
+    );
 
     function commit() {
         const next = addTags(value, draft);
@@ -74,19 +82,25 @@
             bind:ref={input}
             placeholder="Add {label.toLowerCase()}"
             aria-label={label}
-            required={invalid}
+            list={suggestions.length ? `${id}-suggestions` : undefined}
+            required={required && !hasTags(value)}
             aria-required={required}
             aria-invalid={invalid}
-            aria-describedby={`metadata-keywords-help${invalid ? ` ${id}-error` : ""}`}
+            aria-describedby={`${helpId}${invalid ? ` ${id}-error` : ""}`}
             class="min-w-20 flex-1 form-ui:h-6 form-ui:border-0 form-ui:px-0 form-ui:focus-visible:ring-0 form-ui:aria-invalid:ring-0"
             onkeydown={keydown}
             onblur={commit}
         />
     </div>
+    {#if suggestions.length}<datalist id={`${id}-suggestions`}>
+            {#each suggestions as suggestion (suggestion)}<option
+                    value={suggestion}
+                ></option>{/each}
+        </datalist>{/if}
     <span role="status" class="sr-only">{announcement}</span>
     {#if invalid}
         <Field.Error class="text-xs" id={`${id}-error`}
-            >{label} are required.</Field.Error
+            >{validationMessage ?? `${label} are required.`}</Field.Error
         >
     {/if}
 </Field.Field>

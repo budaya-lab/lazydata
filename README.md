@@ -14,8 +14,9 @@ defaults, root-path suggestions and read-only CSV/TSV/JSON/JSONL or recursive fi
 counts. Resource requirements follow shared policy (currently Name, Title, Path).
 Sources adds local rows with required Title and URL or Path fields. The locator
 must be a fully qualified HTTP(S) address or a safe relative POSIX path; URLs are
-not fetched. Read-only checks and the separate raw datapackage.json view remain.
-Saving and dataset creation are not implemented.
+not fetched. Licenses uses a local name-only tag field with common SPDX
+suggestions and custom identifiers allowed. Read-only checks and the separate raw
+datapackage.json view remain. Saving and dataset creation are not implemented.
 
 ## Use the validator
 

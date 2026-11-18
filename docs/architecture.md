@@ -99,6 +99,13 @@ read source paths. Source prefill avoids coercing malformed values. This local
 form requirement does not change the shared validator, which continues to check
 saved sources under its existing policy. No source is saved or migrated.
 
+Licenses is an optional name-only tag field under the current policy. Datalist
+suggestions provide common SPDX identifiers while allowing custom identifiers;
+new draft values reuse shared validator checks. Supplied name strings are shown
+unchanged. Path-only/malformed entries are not converted to names and remain in
+the untouched raw descriptor. Tags map locally to `{ name }`; no writer or policy
+change is introduced.
+
 There is no save path. Read-only Checks remain saved-descriptor checks.
 Navigation/footer remain; Save/Reset stay disabled. There is no former editor
 model, submission parser, patcher, writer or save action. POST is refused with 405; the disabled footer is not a
