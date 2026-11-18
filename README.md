@@ -9,7 +9,10 @@ row; Description sits below, followed by optional SemVer Version and a Created
 date input. Changed dates serialize to RFC3339 at browser-local midnight.
 Keywords adds Tasks/Projects tags on one row and a
 policy-backed Stage dropdown/optional Extra keywords tags on the next. Tasks,
-Projects and Stage are required. Read-only checks and the separate raw
+Projects and Stage are required. Resources adds local rows with path/name/format
+defaults, root-path suggestions and read-only CSV/TSV/JSON/JSONL or recursive file
+counts. Resource requirements follow shared policy (currently Name, Title, Path).
+Read-only checks and the separate raw
 datapackage.json view remain. Saving and dataset creation are not implemented.
 
 ## Use the validator

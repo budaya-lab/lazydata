@@ -3,7 +3,7 @@
 An early read-only Svelte 5/SvelteKit app. It lists immediate, non-symlink `ds-*`
 directories under an explicitly supplied parent folder, including folders without
 metadata. Select a dataset to open its rendered README. Metadata contains a form
-Overview/Keywords UI and read-only checks; datapackage.json separately shows escaped raw
+Overview/Keywords/Resources UI and read-only checks; datapackage.json separately shows escaped raw
 text, even when malformed. The form is being implemented one step at a time.
 Required labels use `*`, explained above the fields. Optional labels are unmarked;
 native/ARIA required states and validation are unchanged.
@@ -44,9 +44,40 @@ from dataset-local configuration. Missing/unknown/multiple stages leave an empty
 selection; the shared saved-metadata issues remain visible. Shared policy still
 requires exactly one task and one project; local tag controls do not change it.
 
-There is no save endpoint, writer, automatic Created date or dataset creation. Save and Reset are disabled placeholders. The app never writes dataset
-files, reads resources/buckets, counts resources, migrates metadata or generates
-READMEs. Checks do not authorize publication. The Python Steward remains unchanged.
+Resources contains local add/remove rows for Name, Path, Title, Format and a
+read-only Count. Required markers follow the compiled shared policy: currently
+Name, Title and Path. Draft resource checks reuse that validator; saved-descriptor
+Shared Checks are separate. Supplied names/titles are retained. Missing Name
+uses the basename without its final extension; missing Format uses the lowercase
+extension. Path edits update defaults without replacing manual overrides. A
+selected directory keeps its basename and has blank, disabled Format.
+
+Path offers native autocomplete from safe root files/folders, excluding hidden,
+linked and template/metadata entries. Nested relative paths can be typed. Native
+suggestion appearance depends on the browser. Path arrays/malformed supplied
+values stay blank and invalid with a raw-descriptor warning, not coerced text.
+
+Counts run after browser mount, path blur or Recount, not during SSR/shared
+validation. CSV/TSV excludes the header and counts logical records, including
+quoted newlines; inconsistent columns/malformed quotes are errors. JSON supports
+top-level arrays; JSONL counts valid nonblank records. Directory counts include
+regular files recursively, including hidden files inside the selected folder.
+Unsupported formats/JSON shapes say Unsupported. Read/parse/safety failures say
+Unavailable, never zero or the descriptor's old count. Manual Format overrides
+do not change the counter's path-extension-based parser. Counts are snapshots.
+
+The counter reads at most 8 MiB per file, 10,000 directory entries, 32 directory
+levels and 128 JSON levels, with a 5-second read/traversal budget. There are at
+most two active counters; each form queues requests serially and ignores stale
+results. The UI caps 200 rows and 1,000 suggestions. Limits/errors are visible.
+It refuses traversal, URLs, hidden path segments, links and special files. Counts
+return only totals/status, never source content. The GET endpoint stays local
+and no-store; no POST/write endpoint was added.
+
+There is no save endpoint, writer, automatic Created date or dataset creation.
+Save and Reset are disabled placeholders. The app never writes dataset files,
+migrates metadata or generates READMEs. Shared validation does not read resource
+contents or buckets; only this separate, bounded resource counter does reads. Checks do not authorize publication. The Python Steward remains unchanged.
 
 ## Dataset table
 
@@ -87,13 +118,15 @@ mappings. Markdown headings start below the dataset page heading. No files chang
 Implement the form in `src/lib/components/metadata-form.svelte`. It retains:
 
 - Section navigation and Overview's required Name/Title text inputs and Description
-  textarea, optional Version/Created and the Keywords controls above. Other section bodies are not implemented.
+  textarea, optional Version/Created, Keywords and Resources controls above.
+  Other section bodies are not implemented.
 - Read-only shared metadata checks in the Checks section.
 - The sticky footer with disabled **Save changes** and **Reset form**, plus a
   working **Reload file** link.
 
-The former editor, repeatable-field/date/time helpers, client draft logic, server
-save action, writer and editor-only jsonc-parser dependency have been removed.
+The former generic editor framework, server save action, writer and editor-only
+jsonc-parser dependency remain removed. These local resource rows do not restore
+that framework.
 POST requests cannot save metadata. README and the raw datapackage.json view remain
 read-only. Diagnostics are escaped text, never automatically followed links.
 No dataset-local configuration weakens the shared policy.

@@ -15,8 +15,10 @@ Future full server validation ─> repository adapter (never shipped to the brow
 
 The local Steward app consumes compiled public exports from the existing
 workspace validator package. Its server-only adapter parses descriptor text,
-shows supplied values and returns portable metadata-check issues. It does not
-read resources/buckets or infer/migrate metadata. Raw text remains available in
+shows supplied values and returns portable metadata-check issues. Those checks do
+not read resources/buckets or infer/migrate metadata. The separately approved
+Resources UI can list safe root paths and request bounded server-only counts;
+that is not part of validation. Raw text remains available in
 the separate datapackage.json view, including on invalid JSON. App dev/check/build explicitly compile the validator first; the
 shared package remains framework-free. External consumers still use the pinned
 compiled release archives described below.
@@ -29,7 +31,7 @@ GET parameters, never roots or filesystem paths. Workspace counts do not change
 with filtering. Normal GET navigation and refresh rerun the read-only checks.
 
 Dataset detail defaults to root README.md. `?view=metadata` contains a form
-with local-only Overview/Keywords controls, section navigation, disabled Save/Reset, Reload and read-only checks. `?view=datapackage` is read-only raw text. The bounded text reader admits only discovered
+with local-only Overview/Keywords/Resources controls, section navigation, disabled Save/Reset, Reload and read-only checks. `?view=datapackage` is read-only raw text. The bounded text reader admits only discovered
 datasets and these two server-selected filenames. README availability does not
 require a descriptor. Server-only Markdown parsing produces an allowlisted tree,
 rendered as escaped Svelte elements/text, never injected HTML. Dataset images and
@@ -63,6 +65,32 @@ calendar values and unrepresentable midnights are rejected rather than normalize
 Its hidden RFC3339 control is local form state, not a persistence interface. Shared
 validation policy is unchanged, including its existing date-time checks; SemVer
 format checking is local UI validation only.
+
+Resources uses the matched resource required-fields policy (currently Name,
+Title and Path). Its live draft issues reuse the portable validator, subtracting
+package-only baseline issues; no resource validation rules are forked. Pure
+helpers extract supplied strings, derive absent filename/format defaults and
+preserve manual overrides. No supplied count is trusted. Array paths/malformed
+types are not coerced into text. Rows add/remove locally with stable IDs.
+
+The metadata loader lists safe root files/folders without reading resource
+contents. A separate GET `/datasets/[name]/resources?path=...` counts on demand.
+Only discovered datasets beneath configured DATASET_ROOT qualify. Unsafe/hidden
+paths, links and special files are refused; no URLs are fetched. Canonical-path,
+no-follow/nonblocking opens, file identity and before/after directory checks
+protect reads, without claiming a sandbox against hostile concurrent FS mutation.
+Counts return totals/units or sanitized status, never contents/absolute paths.
+
+Counter rules: CSV/TSV logical records minus header, top-level JSON array items,
+nonblank valid JSONL records, recursive regular-file totals for directories.
+Directory Format is blank locally. Unsupported formats/shapes are explicit;
+invalid/unreadable/limited inputs never become false zero/saved counts. The
+8 MiB, 10,000-entry, 32-directory-level, 128-JSON-level and 5-second limits bound
+work. At most two counters run; per-form client queues serialize requests and
+skip obsolete queued paths. Row sequence guards reject stale completions. SSR
+never triggers counting; browser mount, path blur and recount do. Forms have at
+most 200 rows, 1,000 suggestions; listing is capped at 10,000 root entries.
+No shared validator code or policy is changed.
 
 There is no save path. Read-only Checks remain saved-descriptor checks.
 Navigation/footer remain; Save/Reset stay disabled. There is no former editor
