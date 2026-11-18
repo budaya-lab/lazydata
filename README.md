@@ -5,7 +5,9 @@ The [SvelteKit app](apps/web/README.md) lists datasets with shared metadata-chec
 statuses and opens README first. Metadata has local-only Name, Title and
 Description inputs prefilled from the descriptor, required-field errors, section
 navigation, disabled Save/Reset and working Reload. Name/Title share a responsive
-row; Description sits below. Keywords adds Tasks/Projects tags on one row and a
+row; Description sits below, followed by optional SemVer Version and a Created
+date input. Changed dates serialize to RFC3339 at browser-local midnight.
+Keywords adds Tasks/Projects tags on one row and a
 policy-backed Stage dropdown/optional Extra keywords tags on the next. Tasks,
 Projects and Stage are required. Read-only checks and the separate raw
 datapackage.json view remain. Saving and dataset creation are not implemented.

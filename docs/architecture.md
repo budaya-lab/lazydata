@@ -39,7 +39,11 @@ This UI warning is not shared validation policy or inferred dataset provenance.
 
 The owner scrapped the former editor and is rebuilding the form incrementally.
 Overview has Name, Title and Description with live blank/whitespace-required
-errors. Keywords has required Tasks/Projects tags, a required Stage dropdown and
+errors. Optional Version/Created follow Description on a responsive row. Version
+has local strict SemVer validation without numeric coercion. Their supplied text
+is passed through; missing fields are blank and invalid supplied types use null
+sentinels so the controls can show errors without stringifying malformed values.
+Keywords has required Tasks/Projects tags, a required Stage dropdown and
 optional Extra keywords tags. The server extracts exact task/project/stage
 prefixes from supplied keyword strings, without coercion or inference. Supplied
 tag strings/spaces/duplicates are retained; missing/unknown/multiple stages leave
@@ -52,8 +56,17 @@ Inputs are local overrides, reset when loaded overview data changes. Tag entry
 commits on Enter/comma/blur, retains internal spaces and avoids new exact
 duplicates. Removing a tag returns focus to its input. Name/Title share a responsive
 row with Description below; Keywords rows are Tasks/Projects then Stage/Extra
-keywords. There is no save path. Read-only Checks remain saved-descriptor checks. Navigation/footer remain; Save/Reset stay disabled. There is no editor model, submission parser, patcher, writer, timezone
-handling or save action. POST is refused with 405; the disabled footer is not a
+keywords. Created's native date input initializes only on browser mount; SSR does
+not choose the server's time zone. The original RFC3339 value is retained until a
+date edit prepares local midnight with the selected date's actual offset. Invalid
+calendar values and unrepresentable midnights are rejected rather than normalized.
+Its hidden RFC3339 control is local form state, not a persistence interface. Shared
+validation policy is unchanged, including its existing date-time checks; SemVer
+format checking is local UI validation only.
+
+There is no save path. Read-only Checks remain saved-descriptor checks.
+Navigation/footer remain; Save/Reset stay disabled. There is no former editor
+model, submission parser, patcher, writer or save action. POST is refused with 405; the disabled footer is not a
 write boundary. No dataset files are written. The editor-only jsonc-parser
 dependency and its lock records were removed; other versions remain unchanged.
 

@@ -5,6 +5,8 @@ directories under an explicitly supplied parent folder, including folders withou
 metadata. Select a dataset to open its rendered README. Metadata contains a form
 Overview/Keywords UI and read-only checks; datapackage.json separately shows escaped raw
 text, even when malformed. The form is being implemented one step at a time.
+Required labels use `*`, explained above the fields. Optional labels are unmarked;
+native/ARIA required states and validation are unchanged.
 
 Overview loads Name, Title and Description from the current datapackage.json.
 Name and Title share a row on wider screens; Description sits below. Only supplied
@@ -12,6 +14,23 @@ strings fill the controls; missing/non-string values stay blank without coercion
 Empty/whitespace-only inputs show inline required errors that clear when filled.
 Input edits remain local. Reload rereads the descriptor. Shared Checks still
 report the saved descriptor, not these local inputs.
+
+Version and Created share a row below Description. Both are optional and start
+blank when absent; no version or current date is invented. Version must be exact
+SemVer (including optional prerelease/build identifiers) when filled. Invalid
+supplied types remain blank with an error rather than being coerced.
+
+Created uses a native date input. It initializes after browser hydration, never
+from the server time zone. Existing timestamps display their browser-local date;
+the original timestamp, time, offset and precision remain unchanged until edited.
+Changing the date prepares `YYYY-MM-DDT00:00:00±HH:MM` using the browser's offset
+at midnight on that selected date, including daylight-saving rules. The prepared
+RFC3339 value is shown below the date input and stays local in the hidden
+`created` control; it is not a file save. The preview keeps the original timestamp
+until edited, matches the prepared value after edits and is hidden when invalid.
+Clearing the date clears both the local value and its preview. Invalid dates, skipped midnights/days
+and historical sub-minute offsets show an error instead of silently shifting time.
+Without browser JavaScript, the date input remains disabled. No time/zone selector.
 
 Keywords prefills Tasks from `task:`, Projects from `project:`, Stage from `stage:`
 and Extra keywords from the remaining supplied strings. Tasks/Projects share one
@@ -25,7 +44,7 @@ from dataset-local configuration. Missing/unknown/multiple stages leave an empty
 selection; the shared saved-metadata issues remain visible. Shared policy still
 requires exactly one task and one project; local tag controls do not change it.
 
-There is no save endpoint, writer, date/time default or dataset creation. Save and Reset are disabled placeholders. The app never writes dataset
+There is no save endpoint, writer, automatic Created date or dataset creation. Save and Reset are disabled placeholders. The app never writes dataset
 files, reads resources/buckets, counts resources, migrates metadata or generates
 READMEs. Checks do not authorize publication. The Python Steward remains unchanged.
 
@@ -68,7 +87,7 @@ mappings. Markdown headings start below the dataset page heading. No files chang
 Implement the form in `src/lib/components/metadata-form.svelte`. It retains:
 
 - Section navigation and Overview's required Name/Title text inputs and Description
-  textarea, plus the Keywords controls above. Other section bodies are not implemented.
+  textarea, optional Version/Created and the Keywords controls above. Other section bodies are not implemented.
 - Read-only shared metadata checks in the Checks section.
 - The sticky footer with disabled **Save changes** and **Reset form**, plus a
   working **Reload file** link.
