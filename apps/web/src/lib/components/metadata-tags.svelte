@@ -48,9 +48,7 @@
 </script>
 
 <Field.Field data-invalid={invalid}>
-    <Field.Label for={id}
-        >{label}{#if !required}&#160;(optional){/if}</Field.Label
-    >
+    <Field.Label for={id} {required}>{label}</Field.Label>
     <div
         data-invalid={invalid || undefined}
         class="flex min-h-8 min-w-0 flex-wrap items-center gap-1 rounded-lg border border-input px-2.5 py-1 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 data-invalid:border-destructive data-invalid:ring-3 data-invalid:ring-destructive/20"

@@ -7,8 +7,9 @@
 		ref = $bindable(null),
 		class: className,
 		children,
+		required = false,
 		...restProps
-	}: ComponentProps<typeof Label> = $props();
+	}: ComponentProps<typeof Label> & { required?: boolean } = $props();
 </script>
 
 <Label
@@ -22,4 +23,5 @@
 	{...restProps}
 >
 	{@render children?.()}
+	{#if required}<span aria-hidden="true" class="text-destructive">*</span>{/if}
 </Label>

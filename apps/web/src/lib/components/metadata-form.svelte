@@ -4,11 +4,14 @@
     import { Input } from "$lib/components/ui/input/index.js";
     import { Textarea } from "$lib/components/ui/textarea/index.js";
     import MetadataKeywords from "$lib/components/metadata-keywords.svelte";
+    import MetadataVersionCreated from "$lib/components/metadata-version-created.svelte";
 
     let {
         name,
         title,
         description,
+        version,
+        created,
         keywordFields,
         stageOptions,
         issues,
@@ -17,6 +20,8 @@
         name: string;
         title: string;
         description: string;
+        version: string | null;
+        created: string | null;
         keywordFields: { tasks: string[]; projects: string[]; stage: string; extraKeywords: string[] };
         stageOptions: { value: string; label: string }[];
         issues: string[];
@@ -50,12 +55,13 @@
             >Checks ({issues.length})</Button
         >
     </nav>
+    <p class="text-xs text-muted-foreground">Fields marked * are required.</p>
     <Field.Group class="gap-6">
         <Field.Set id={sections[0].id} class="scroll-mt-28 gap-4">
             <Field.Legend class="mb-2">{sections[0].label}</Field.Legend>
             <Field.Group class="grid gap-4 sm:grid-cols-2">
                 <Field.Field data-invalid={!name.trim()}>
-                    <Field.Label for="metadata-name">Name</Field.Label>
+                    <Field.Label for="metadata-name" required>Name</Field.Label>
                     <Input
                         id="metadata-name"
                         name="name"
@@ -73,7 +79,7 @@
                     {/if}
                 </Field.Field>
                 <Field.Field data-invalid={!title.trim()}>
-                    <Field.Label for="metadata-title">Title</Field.Label>
+                    <Field.Label for="metadata-title" required>Title</Field.Label>
                     <Input
                         id="metadata-title"
                         name="title"
@@ -94,7 +100,7 @@
                     class="sm:col-span-2"
                     data-invalid={!description.trim()}
                 >
-                    <Field.Label for="metadata-description"
+                    <Field.Label for="metadata-description" required
                         >Description</Field.Label
                     >
                     <Textarea
@@ -115,6 +121,7 @@
                         >
                     {/if}
                 </Field.Field>
+                <MetadataVersionCreated {version} {created} />
             </Field.Group>
         </Field.Set>
         <MetadataKeywords {...keywordFields} {stageOptions} />

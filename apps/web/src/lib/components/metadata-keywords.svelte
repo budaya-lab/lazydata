@@ -22,7 +22,7 @@
         <MetadataTags id="metadata-tasks" label="Tasks" bind:value={tasks} required />
         <MetadataTags id="metadata-projects" label="Projects" bind:value={projects} required />
         <Field.Field data-invalid={invalidStage}>
-            <Field.Label for="metadata-stage">Stage</Field.Label>
+            <Field.Label for="metadata-stage" required>Stage</Field.Label>
             <NativeSelect.Root id="metadata-stage" name="stage" class="w-full"
                 bind:value={stage} required aria-invalid={invalidStage}
                 aria-describedby={invalidStage ? "metadata-stage-error" : undefined}>

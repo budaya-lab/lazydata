@@ -28,13 +28,16 @@ test('uses real shared metadata checks and displays supplied fields', () => {
   assert.deepEqual(field(report, 'Licences'), ['[{"name":"CC0-1.0"}]']);
 });
 
-test('loads only supplied strings into the three overview inputs without coercion', () => {
-  const supplied = { name: 'package-name', title: '  Exact title  ', description: 'Line one\nLine two' };
+test('loads supplied overview strings without coercion or fabricated version/date defaults', () => {
+  const supplied = { name: 'package-name', title: '  Exact title  ', description: 'Line one\nLine two',
+    version: '1.2.3-rc.1+build.5', created: '2026-01-02T03:04:05.123+08:00' };
   assert.deepEqual(inspectMetadata(JSON.stringify(supplied)).overview, supplied);
   assert.deepEqual(inspectMetadata('{"name":42,"title":null,"description":{"text":"not a string"}}').overview,
-    { name: '', title: '', description: '' });
+    { name: '', title: '', description: '', version: '', created: '' });
+  assert.deepEqual(inspectMetadata('{"version":42,"created":null}').overview,
+    { name: '', title: '', description: '', version: null, created: null });
   for (const text of ['{}', 'null', '[]', '{broken']) {
-    assert.deepEqual(inspectMetadata(text).overview, { name: '', title: '', description: '' });
+    assert.deepEqual(inspectMetadata(text).overview, { name: '', title: '', description: '', version: '', created: '' });
   }
 });
 

@@ -279,9 +279,20 @@ for (const mode of ['dev', 'built'] as const) {
       assert.equal(response.status, 200, logs());
       pages[name] = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
       assert.match(pages[name], /aria-label="Metadata form"/);
+      assert.ok(pages[name].includes('Fields marked * are required.'));
+      for (const id of ['name', 'title', 'description', 'tasks', 'projects', 'stage', 'version', 'created', 'extra-keywords']) {
+        const start = pages[name].indexOf(`for="metadata-${id}"`);
+        assert.ok(start >= 0, `${id} label`);
+        const label = pages[name].slice(start, pages[name].indexOf('</label>', start));
+        if (['version', 'created', 'extra-keywords'].includes(id)) {
+          assert.doesNotMatch(label, />\*<\/span>|\(optional\)/, `${id} stays unmarked`);
+        } else {
+          assert.match(label, /<span\b[^>]*aria-hidden="true"[^>]*>\*<\/span>/, `${id} has a required marker`);
+        }
+      }
       assert.match(pages[name], /Metadata validation/);
       assert.match(pages[name], /Resource\s+files\s+and\s+buckets\s+are\s+not\s+read/);
-      assert.equal([...pages[name].matchAll(/<(?:input|textarea)\b/g)].length, 6);
+      assert.equal([...pages[name].matchAll(/<(?:input|textarea)\b/g)].length, 9);
       assert.doesNotMatch(pages[name], /name="submission"/);
       assert.doesNotMatch(pages[name], /<pre\b|<dl\b|Dataset is valid/);
       assert.equal(pages[name].includes(root), false);
@@ -404,6 +415,42 @@ for (const mode of ['dev', 'built'] as const) {
     assert.deepEqual(await snapshot(root), before);
   });
 
+  test(`${mode}: shows optional SemVer and browser-only Created date controls without changing stored timestamps`, async (t) => {
+    const root = await fixture(t); const directory = join(root, 'ds-version-created');
+    await fs.mkdir(directory);
+    const path = join(directory, 'datapackage.json');
+    const descriptor = { name: 'version-created', title: 'Version and Created', description: 'Supplied description',
+      version: '1.2.3-rc.1+build.7', created: '2026-01-01T23:45:56.789-03:30' };
+    await fs.writeFile(path, JSON.stringify(descriptor));
+    const before = await snapshot(root);
+    const { url, logs } = await serve(t, mode, root);
+    const html = (await (await fetch(`${url}/datasets/ds-version-created?view=metadata`)).text()).replace(/<!--[\s\S]*?-->/g, '');
+    const version = html.match(/<input\b(?=[^>]*id="metadata-version")[^>]*>/)?.[0];
+    assert.ok(version, logs()); assert.ok(html.includes('for="metadata-version"'));
+    assert.match(version, /value="1\.2\.3-rc\.1\+build\.7"/);
+    assert.match(version, /aria-invalid="false"/); assert.doesNotMatch(version, /\srequired(?:[\s=>])/);
+    const date = html.match(/<input\b(?=[^>]*id="metadata-created")[^>]*>/)?.[0];
+    assert.ok(date); assert.ok(html.includes('for="metadata-created"'));
+    assert.match(date, /type="date"/); assert.match(date, /\sdisabled(?:[\s=>])/);
+    assert.match(date, /value=""/); assert.doesNotMatch(date, /\srequired(?:[\s=>])/);
+    const serialized = html.match(/<input\b(?=[^>]*type="hidden")(?=[^>]*name="created")[^>]*>/)?.[0];
+    assert.ok(serialized); assert.ok(serialized.includes(`value="${descriptor.created}"`));
+    const previewStart = html.indexOf('id="metadata-created-help"');
+    assert.ok(previewStart >= 0);
+    const preview = html.slice(previewStart, html.indexOf('</p>', previewStart));
+    assert.ok(preview.includes(descriptor.created), 'Created shows the exact recorded RFC3339 value');
+    assert.doesNotMatch(html, /Date changes use midnight|type="(?:time|datetime-local)"/);
+    await fs.writeFile(path, JSON.stringify({ ...descriptor, version: '01.2.3' }));
+    const invalid = await (await fetch(`${url}/datasets/ds-version-created?view=metadata`)).text();
+    assert.match(invalid, /<input\b(?=[^>]*id="metadata-version")(?=[^>]*aria-invalid="true")[^>]*>/);
+    assert.match(invalid, /id="metadata-version-error"/);
+    await fs.writeFile(path, JSON.stringify({ ...descriptor, version: 42 }));
+    assert.match(await (await fetch(`${url}/datasets/ds-version-created?view=metadata`)).text(),
+      /<input\b(?=[^>]*id="metadata-version")(?=[^>]*aria-invalid="true")[^>]*>/);
+    await fs.writeFile(path, JSON.stringify(descriptor));
+    assert.deepEqual(await snapshot(root), before);
+  });
+
   test(`${mode}: prefills overview from current descriptor values without writing them`, async (t) => {
     const root = await fixture(t); const directory = join(root, 'ds-prefill');
     await fs.mkdir(directory);
@@ -458,7 +505,7 @@ for (const mode of ['dev', 'built'] as const) {
       assert.ok(button, label); assert.match(button[0], /\bdisabled(?:[=\s>])/);
     }
     assert.match(html, /Reload file/);
-    assert.equal([...html.matchAll(/<(?:input|textarea)\b/g)].length, 6);
+    assert.equal([...html.matchAll(/<(?:input|textarea)\b/g)].length, 9);
     for (const [id, message] of [['tasks', 'Tasks are required.'], ['projects', 'Projects are required.'], ['stage', 'Stage is required.']]) {
       const control = html.match(new RegExp(`<(?:input|select)\\b(?=[^>]*id="metadata-${id}")[^>]*>`))?.[0];
       assert.ok(control); assert.match(control, /\srequired(?:[\s=>])/);

@@ -36,10 +36,10 @@ function contributorLabel(value: unknown): string {
 export function inspectMetadata(text: string): {
   fields: MetadataField[];
   issues: string[];
-  overview: { name: string; title: string; description: string };
+  overview: { name: string; title: string; description: string; version: string | null; created: string | null };
   keywordFields: { tasks: string[]; projects: string[]; stage: string; extraKeywords: string[] };
 } {
-  const emptyOverview = { name: '', title: '', description: '' };
+  const emptyOverview = { name: '', title: '', description: '', version: '', created: '' };
   const keywordFields: ReturnType<typeof inspectMetadata>['keywordFields'] = {
     tasks: [], projects: [], stage: '', extraKeywords: [],
   };
@@ -58,6 +58,8 @@ export function inspectMetadata(text: string): {
     name: typeof data.name === 'string' ? data.name : '',
     title: typeof data.title === 'string' ? data.title : '',
     description: typeof data.description === 'string' ? data.description : '',
+    version: data.version === undefined ? '' : typeof data.version === 'string' ? data.version : null,
+    created: data.created === undefined ? '' : typeof data.created === 'string' ? data.created : null,
   };
   const fields: MetadataField[] = [
     ['Name', 'name'], ['Title', 'title'], ['Description', 'description'],
