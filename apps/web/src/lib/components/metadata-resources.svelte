@@ -109,8 +109,7 @@
             size="sm"
             bind:ref={addButton}
             onclick={add}
-            disabled={rows.length >= MAX_RESOURCE_ROWS}
-            >Add another resource</Button
+            disabled={rows.length >= MAX_RESOURCE_ROWS}>Add a resource</Button
         >
     </div>
     <span role="status" class="sr-only">{announcement}</span>

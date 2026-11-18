@@ -1,14 +1,14 @@
 <script lang="ts">
+    import MetadataKeywords from "$lib/components/metadata-keywords.svelte";
+    import MetadataResources from "$lib/components/metadata-resources.svelte";
+    import MetadataSources from "$lib/components/metadata-sources.svelte";
+    import type { SourceModel } from "$lib/source-fields.ts";
+    import type { ResourceModel } from "$lib/resource-fields.ts";
+    import MetadataVersionCreated from "$lib/components/metadata-version-created.svelte";
     import { Button } from "$lib/components/ui/button/index.js";
     import * as Field from "$lib/components/ui/field/index.js";
     import { Input } from "$lib/components/ui/input/index.js";
     import { Textarea } from "$lib/components/ui/textarea/index.js";
-    import MetadataKeywords from "$lib/components/metadata-keywords.svelte";
-    import MetadataResources from "$lib/components/metadata-resources.svelte";
-    import MetadataSources from "$lib/components/metadata-sources.svelte";
-    import type { ResourceModel } from "$lib/resource-fields.ts";
-    import type { SourceModel } from "$lib/source-fields.ts";
-    import MetadataVersionCreated from "$lib/components/metadata-version-created.svelte";
 
     let {
         name,
@@ -29,7 +29,12 @@
         description: string;
         version: string | null;
         created: string | null;
-        keywordFields: { tasks: string[]; projects: string[]; stage: string; extraKeywords: string[] };
+        keywordFields: {
+            tasks: string[];
+            projects: string[];
+            stage: string;
+            extraKeywords: string[];
+        };
         resourceModel: ResourceModel;
         resourceCountUrl: string;
         sourceModel: SourceModel;
@@ -40,10 +45,10 @@
     const sections = [
         { id: "metadata-overview", label: "Overview" },
         { id: "root/keywords", label: "Keywords" },
-        { id: "root/contributors", label: "Contributors" },
-        { id: "root/licenses", label: "Licences" },
-        { id: "root/sources", label: "Sources" },
         { id: "root/resources", label: "Resources" },
+        { id: "root/contributors", label: "Contributors" },
+        { id: "root/licenses", label: "Licenses" },
+        { id: "root/sources", label: "Sources" },
     ];
 </script>
 
@@ -89,7 +94,9 @@
                     {/if}
                 </Field.Field>
                 <Field.Field data-invalid={!title.trim()}>
-                    <Field.Label for="metadata-title" required>Title</Field.Label>
+                    <Field.Label for="metadata-title" required
+                        >Title</Field.Label
+                    >
                     <Input
                         id="metadata-title"
                         name="title"

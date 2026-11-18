@@ -304,7 +304,7 @@ for (const mode of ['dev', 'built'] as const) {
     }
     assert.match(pages.modern, /Metadata checks passed/);
     assert.match(pages.modern, /aria-label="Sources"/);
-    assert.match(pages.modern, /Add another source/);
+    assert.match(pages.modern, /Add a source/);
     for (const [name, value] of [
       ['source-0-title', 'Web source'],
       ['source-0-path', 'https://example.org/catalogue'],
@@ -452,7 +452,7 @@ for (const mode of ['dev', 'built'] as const) {
       if (policy.resource.requiredFields.includes(key as 'name' | 'path' | 'title')) assert.match(control, /\srequired(?:[\s=>])/);
     }
     assert.match(html, /<datalist\b/); assert.ok(html.includes('value="images.v2/"'));
-    assert.match(html, /Add another resource/); assert.match(html, /aria-label="Remove resource items"/);
+    assert.match(html, /Add a resource/); assert.match(html, /aria-label="Remove resource items"/);
     assert.doesNotMatch(html, /<input\b[^>]*name="resource-0-count"/);
     assert.match(html, /Not counted/);
     const endpoint = `${url}/datasets/ds-resources/resources`;

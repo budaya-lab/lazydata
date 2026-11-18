@@ -2,19 +2,29 @@
     import { onMount } from "svelte";
     import * as Field from "$lib/components/ui/field/index.js";
     import { Input } from "$lib/components/ui/input/index.js";
-    import { createdAtLocalMidnight, isSemver, localDateForCreated } from "$lib/overview-values.ts";
+    import {
+        createdAtLocalMidnight,
+        isSemver,
+        localDateForCreated,
+    } from "$lib/overview-values.ts";
 
-    let { version, created }: { version: string | null; created: string | null } = $props();
+    let {
+        version,
+        created,
+    }: { version: string | null; created: string | null } = $props();
     let dateValue = $state("");
     let dateError = $state("");
     let ready = $state(false);
-    let invalidVersion = $derived(version === null || (version !== "" && !isSemver(version)));
+    let invalidVersion = $derived(
+        version === null || (version !== "" && !isSemver(version)),
+    );
     let invalidCreated = $derived(created === null || Boolean(dateError));
 
     onMount(() => {
         if (created !== "") {
             const day = created === null ? null : localDateForCreated(created);
-            if (day === null) dateError = "Created must be a valid RFC3339 date-time.";
+            if (day === null)
+                dateError = "Created must be a valid RFC3339 date-time.";
             else dateValue = day;
         }
         ready = true;
@@ -34,7 +44,8 @@
         }
         const value = createdAtLocalMidnight(dateValue);
         if (value === null) {
-            dateError = "Midnight is not available in your browser's time zone for this date.";
+            dateError =
+                "Midnight is not available in your browser's time zone for this date.";
             return;
         }
         created = value;
@@ -43,23 +54,49 @@
 
 <Field.Field data-invalid={invalidVersion}>
     <Field.Label for="metadata-version">Version</Field.Label>
-    <Input id="metadata-version" name="version" bind:value={version} placeholder="1.0.0"
-        aria-invalid={invalidVersion} aria-describedby={invalidVersion ? "metadata-version-error" : undefined} />
+    <Input
+        id="metadata-version"
+        name="version"
+        bind:value={version}
+        placeholder="1.0.0"
+        aria-invalid={invalidVersion}
+        aria-describedby={invalidVersion ? "metadata-version-error" : undefined}
+    />
     {#if invalidVersion}
-        <Field.Error class="text-xs" id="metadata-version-error">Use a valid SemVer version, such as 1.0.0.</Field.Error>
+        <Field.Error class="text-xs" id="metadata-version-error"
+            >Use a valid SemVer version, such as 1.0.0.</Field.Error
+        >
     {/if}
 </Field.Field>
 <Field.Field data-invalid={invalidCreated}>
     <Field.Label for="metadata-created">Created</Field.Label>
-    <Input id="metadata-created" name="createdDate" type="date" value={dateValue}
-        min="0001-01-01" max="9999-12-31" disabled={!ready} oninput={changeDate}
+    <Input
+        id="metadata-created"
+        name="createdDate"
+        type="date"
+        value={dateValue}
+        min="0001-01-01"
+        max="9999-12-31"
+        disabled={!ready}
+        oninput={changeDate}
         aria-invalid={invalidCreated}
-        aria-describedby={`metadata-created-help${invalidCreated ? " metadata-created-error" : ""}`} />
-    <input type="hidden" name="created" value={created ?? ""} disabled={!ready || invalidCreated} />
+        aria-describedby={`metadata-created-help${invalidCreated ? " metadata-created-error" : ""}`}
+    />
+    <input
+        type="hidden"
+        name="created"
+        value={created ?? ""}
+        disabled={!ready || invalidCreated}
+    />
     <Field.Description id="metadata-created-help" aria-live="polite">
-        {#if !invalidCreated}<code class="wrap-anywhere">{created ?? ""}</code>{/if}
+        {#if !invalidCreated}Saved as <code class="text-xs wrap-anywhere"
+                >{created ?? ""}</code
+            >{/if}
     </Field.Description>
     {#if invalidCreated}
-        <Field.Error class="text-xs" id="metadata-created-error">{dateError || "Created must be a valid RFC3339 date-time."}</Field.Error>
+        <Field.Error class="text-xs" id="metadata-created-error"
+            >{dateError ||
+                "Created must be a valid RFC3339 date-time."}</Field.Error
+        >
     {/if}
 </Field.Field>
