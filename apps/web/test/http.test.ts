@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test, type TestContext } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import policy from '@lazydata/validator/policy' with { type: 'json' };
 
 const app = fileURLToPath(new URL('../', import.meta.url));
 
@@ -280,7 +281,7 @@ for (const mode of ['dev', 'built'] as const) {
       assert.match(pages[name], /aria-label="Metadata form"/);
       assert.match(pages[name], /Metadata validation/);
       assert.match(pages[name], /Resource\s+files\s+and\s+buckets\s+are\s+not\s+read/);
-      assert.equal([...pages[name].matchAll(/<(?:input|textarea)\b/g)].length, 3);
+      assert.equal([...pages[name].matchAll(/<(?:input|textarea)\b/g)].length, 6);
       assert.doesNotMatch(pages[name], /name="submission"/);
       assert.doesNotMatch(pages[name], /<pre\b|<dl\b|Dataset is valid/);
       assert.equal(pages[name].includes(root), false);
@@ -364,6 +365,45 @@ for (const mode of ['dev', 'built'] as const) {
     assert.equal(await fs.readFile(outside, 'utf8'), 'outside README marker');
   });
 
+  test(`${mode}: prefills keyword tags and matched-policy stages without writing files`, async (t) => {
+    const root = await fixture(t); const directory = join(root, 'ds-keywords');
+    await fs.mkdir(directory);
+    const path = join(directory, 'datapackage.json');
+    const descriptor = { name: 'keywords', title: 'Keywords', description: 'Supplied description',
+      keywords: ['task:classification', 'project:South East Asia', 'stage:curated', 'language:Malay', '<script>extra</script>'],
+      resources: [{ name: 'input', title: 'Input', path: 'missing.csv' }] };
+    await fs.writeFile(path, JSON.stringify(descriptor));
+    await fs.writeFile(join(directory, 'dataset.config.json'), '{"stages":{"custom":"Not authoritative"}}');
+    const before = await snapshot(root);
+    const { url, logs } = await serve(t, mode, root);
+    const html = (await (await fetch(`${url}/datasets/ds-keywords?view=metadata`)).text()).replace(/<!--[\s\S]*?-->/g, '');
+    assert.ok(html.includes('id="root/keywords"'), logs());
+    for (const [id, label] of [['tasks', 'Tasks'], ['projects', 'Projects'], ['extra-keywords', 'Extra keywords']]) {
+      assert.ok(html.includes(`for="metadata-${id}"`), `${label} label`);
+      assert.match(html, new RegExp(`<input\\b(?=[^>]*id="metadata-${id}")[^>]*>`));
+    }
+    assert.match(html, /classification/);
+    assert.match(html, /South East Asia/);
+    assert.match(html, /language:Malay/);
+    assert.match(html, /&lt;script(?:>|&gt;)extra/);
+    assert.doesNotMatch(html, /<script>extra|Tasks are required\.|Projects are required\.|Stage is required\./);
+    const select = html.match(/<select\b(?=[^>]*id="metadata-stage")[^>]*>[\s\S]*?<\/select>/)?.[0];
+    assert.ok(select, 'Stage is a native dropdown');
+    assert.match(select, /\brequired(?:[\s=>])/);
+    assert.deepEqual([...select.matchAll(/<option\b[^>]*value="([^"]*)"/g)].map((match) => match[1]), ['', ...Object.keys(policy.stages)]);
+    assert.match(select, /<option\b(?=[^>]*value="curated")(?=[^>]*\bselected)[^>]*>Curated dataset/);
+    assert.doesNotMatch(select, /custom|Not authoritative/);
+    const extra = html.match(/<input\b(?=[^>]*id="metadata-extra-keywords")[^>]*>/)?.[0];
+    assert.ok(extra); assert.doesNotMatch(extra, /\srequired(?:[\s=>])/);
+    await fs.writeFile(path, JSON.stringify({ ...descriptor, keywords: ['task:new-task', 'project:New Project', 'stage:unknown'] }));
+    const refreshed = await (await fetch(`${url}/datasets/ds-keywords?view=metadata`)).text();
+    assert.match(refreshed, /New Project/);
+    assert.match(refreshed, /Stage is required\./);
+    assert.doesNotMatch(refreshed, /South East Asia/);
+    await fs.writeFile(path, JSON.stringify(descriptor));
+    assert.deepEqual(await snapshot(root), before);
+  });
+
   test(`${mode}: prefills overview from current descriptor values without writing them`, async (t) => {
     const root = await fixture(t); const directory = join(root, 'ds-prefill');
     await fs.mkdir(directory);
@@ -418,7 +458,15 @@ for (const mode of ['dev', 'built'] as const) {
       assert.ok(button, label); assert.match(button[0], /\bdisabled(?:[=\s>])/);
     }
     assert.match(html, /Reload file/);
-    assert.equal([...html.matchAll(/<(?:input|textarea)\b/g)].length, 3);
+    assert.equal([...html.matchAll(/<(?:input|textarea)\b/g)].length, 6);
+    for (const [id, message] of [['tasks', 'Tasks are required.'], ['projects', 'Projects are required.'], ['stage', 'Stage is required.']]) {
+      const control = html.match(new RegExp(`<(?:input|select)\\b(?=[^>]*id="metadata-${id}")[^>]*>`))?.[0];
+      assert.ok(control); assert.match(control, /\srequired(?:[\s=>])/);
+      assert.match(control, /aria-invalid="true"/);
+      assert.ok(control.includes(`metadata-${id}-error`));
+      assert.ok(html.includes(`id="metadata-${id}-error"`));
+      assert.ok(html.includes(message));
+    }
     assert.doesNotMatch(html, /name="submission"|Unsaved changes/);
     for (const query of ['?view=metadata&/save', '?/save']) {
       const post = await fetch(`${url}/datasets/ds-placeholder${query}`, {

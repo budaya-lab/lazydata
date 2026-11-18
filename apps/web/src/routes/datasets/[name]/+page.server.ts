@@ -2,7 +2,7 @@ import { error } from "@sveltejs/kit";
 import { DescriptorError } from "../../../lib/server/descriptor.ts";
 import { readDatasetSnapshot } from "../../../lib/server/dataset-text.ts";
 import { DiscoveryError } from "../../../lib/server/discovery.ts";
-import { inspectMetadata } from "../../../lib/server/metadata.ts";
+import { inspectMetadata, stageOptions } from "../../../lib/server/metadata.ts";
 import { readReadme } from "../../../lib/server/readme.ts";
 import type { PageServerLoad } from "./$types";
 
@@ -15,8 +15,8 @@ export const load = (async ({ params, url }) => {
 		}
 		const snapshot = await readDatasetSnapshot(process.env.DATASET_ROOT, params.name, 'datapackage.json');
 		if (view === 'datapackage') return { name: params.name, view: 'datapackage' as const, text: snapshot.text };
-		const { issues, overview } = inspectMetadata(snapshot.text);
-		return { name: params.name, view: 'metadata' as const, issues, overview };
+		const { issues, overview, keywordFields } = inspectMetadata(snapshot.text);
+		return { name: params.name, view: 'metadata' as const, issues, overview, keywordFields, stageOptions };
 	} catch (cause) {
 		if (cause instanceof DescriptorError || cause instanceof DiscoveryError) {
 			console.error(cause);

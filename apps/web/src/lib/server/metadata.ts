@@ -1,6 +1,8 @@
 import { validateMetadata } from '@lazydata/validator';
 import policy from '@lazydata/validator/policy' with { type: 'json' };
 
+export const stageOptions = Object.entries(policy.stages).map(([value, label]) => ({ value, label }));
+
 interface MetadataField {
   label: string;
   values: string[];
@@ -35,18 +37,22 @@ export function inspectMetadata(text: string): {
   fields: MetadataField[];
   issues: string[];
   overview: { name: string; title: string; description: string };
+  keywordFields: { tasks: string[]; projects: string[]; stage: string; extraKeywords: string[] };
 } {
   const emptyOverview = { name: '', title: '', description: '' };
+  const keywordFields: ReturnType<typeof inspectMetadata>['keywordFields'] = {
+    tasks: [], projects: [], stage: '', extraKeywords: [],
+  };
   let data: unknown;
   try {
     data = JSON.parse(text);
   } catch (cause) {
     if (!(cause instanceof SyntaxError)) throw cause;
-    return { fields: [], issues: ['datapackage.json is not valid JSON.'], overview: emptyOverview };
+    return { fields: [], issues: ['datapackage.json is not valid JSON.'], overview: emptyOverview, keywordFields };
   }
 
   const issues = validateMetadata(data, policy);
-  if (!isObject(data)) return { fields: [], issues, overview: emptyOverview };
+  if (!isObject(data)) return { fields: [], issues, overview: emptyOverview, keywordFields };
 
   const overview = {
     name: typeof data.name === 'string' ? data.name : '',
@@ -68,11 +74,18 @@ export function inspectMetadata(text: string): {
   fields.push({ label: 'Contributors', values: contributors.length
     ? contributors.map(contributorLabel) : suppliedValues(data.contributors) });
 
-  const keywords: unknown[] = Array.isArray(data.keywords) ? data.keywords : [];
-  for (const [label, prefix] of [['Task', 'task:'], ['Project', 'project:'], ['Stage', 'stage:']]) {
-    fields.push({ label, values: keywords.filter((keyword): keyword is string =>
-      typeof keyword === 'string' && keyword.startsWith(prefix)
-    ).map((keyword) => displayValue(keyword.slice(prefix.length))) });
+  const keywords: string[] = Array.isArray(data.keywords)
+    ? data.keywords.filter((keyword): keyword is string => typeof keyword === 'string') : [];
+  const prefixedValues = (prefix: string) => keywords.filter((keyword) => keyword.startsWith(prefix))
+    .map((keyword) => keyword.slice(prefix.length));
+  keywordFields.tasks = prefixedValues('task:');
+  keywordFields.projects = prefixedValues('project:');
+  const stages = prefixedValues('stage:');
+  keywordFields.stage = stages.length === 1 && Object.hasOwn(policy.stages, stages[0]) ? stages[0] : '';
+  keywordFields.extraKeywords = keywords.filter((keyword) =>
+    !['task:', 'project:', 'stage:'].some((prefix) => keyword.startsWith(prefix)));
+  for (const [label, values] of [['Task', keywordFields.tasks], ['Project', keywordFields.projects], ['Stage', stages]] as const) {
+    fields.push({ label, values: values.map(displayValue) });
   }
-  return { fields, issues, overview };
+  return { fields, issues, overview, keywordFields };
 }

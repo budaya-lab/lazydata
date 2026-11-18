@@ -3,17 +3,22 @@
     import * as Field from "$lib/components/ui/field/index.js";
     import { Input } from "$lib/components/ui/input/index.js";
     import { Textarea } from "$lib/components/ui/textarea/index.js";
+    import MetadataKeywords from "$lib/components/metadata-keywords.svelte";
 
     let {
         name,
         title,
         description,
+        keywordFields,
+        stageOptions,
         issues,
         reloadUrl,
     }: {
         name: string;
         title: string;
         description: string;
+        keywordFields: { tasks: string[]; projects: string[]; stage: string; extraKeywords: string[] };
+        stageOptions: { value: string; label: string }[];
         issues: string[];
         reloadUrl: string;
     } = $props();
@@ -112,6 +117,7 @@
                 </Field.Field>
             </Field.Group>
         </Field.Set>
+        <MetadataKeywords {...keywordFields} {stageOptions} />
     </Field.Group>
     <section
         id="metadata-validation"

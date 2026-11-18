@@ -38,6 +38,28 @@ test('loads only supplied strings into the three overview inputs without coercio
   }
 });
 
+test('prefills keyword fields from exact prefixes, preserving project spaces and supplied tag text', () => {
+  const supplied = { ...descriptor, keywords: ['task:classification', 'task:classification',
+    'project:  South East Asia  ', 'stage:ground-truth', 'language:Malay', 'TASK:keep as extra', 'plain tag', null] };
+  const report = inspectMetadata(JSON.stringify(supplied));
+  assert.deepEqual(report.keywordFields, { tasks: ['classification', 'classification'],
+    projects: ['  South East Asia  '], stage: 'ground-truth',
+    extraKeywords: ['language:Malay', 'TASK:keep as extra', 'plain tag'] });
+  assert.deepEqual(report.issues, validateMetadata(supplied, policy));
+});
+
+test('leaves missing, malformed and ambiguous keyword fields unselected without inferring values', () => {
+  const empty = { tasks: [], projects: [], stage: '', extraKeywords: [] };
+  for (const text of ['{}', 'null', '[]', '{broken', '{"keywords":{}}', '{"keywords":[null,42]}']) {
+    assert.deepEqual(inspectMetadata(text).keywordFields, empty);
+  }
+  for (const keywords of [['stage:unknown'], ['stage:master', 'stage:curated'], ['stage:curated', 'stage:curated'], ['stage: master']]) {
+    assert.equal(inspectMetadata(JSON.stringify({ keywords })).keywordFields.stage, '');
+  }
+  assert.deepEqual(inspectMetadata('{"keywords":["task:","project: ","stage:"]}').keywordFields,
+    { tasks: [''], projects: [' '], stage: '', extraKeywords: [] });
+});
+
 test('shows only explicitly declared creators, without promoting other contributors', () => {
   const report = inspectMetadata(JSON.stringify({ ...descriptor, contributors: [
     { title: 'Alice', roles: ['creator', 'curator'] },

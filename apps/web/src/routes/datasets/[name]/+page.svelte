@@ -71,7 +71,7 @@
         {/if}
     {:else if data.view === "metadata"}
         {#key data.overview}
-            <MetadataForm {...data.overview} issues={data.issues} reloadUrl={`${datasetUrl}?view=metadata`} />
+            <MetadataForm {...data.overview} keywordFields={data.keywordFields} stageOptions={data.stageOptions} issues={data.issues} reloadUrl={`${datasetUrl}?view=metadata`} />
         {/key}
     {:else}
         <h2 class="font-heading text-xl font-semibold">datapackage.json</h2>
