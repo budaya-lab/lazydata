@@ -28,6 +28,15 @@ raw descriptors remain detail-only. Search/status filters are bounded, validated
 GET parameters, never roots or filesystem paths. Workspace counts do not change
 with filtering. Normal GET navigation and refresh rerun the read-only checks.
 
+Dataset detail defaults to root README.md; `?view=metadata` retains descriptor
+inspection and shared checks. The bounded text reader admits only discovered
+datasets and these two server-selected filenames. README availability does not
+require a descriptor. Server-only Markdown parsing produces an allowlisted tree,
+rendered as escaped Svelte elements/text, never injected HTML. Dataset images and
+local link mappings are disabled. Static reviewed README fingerprints support
+exact template warnings without runtime access to a sibling template checkout.
+This UI warning is not shared validation policy or inferred dataset provenance.
+
 The validator owns the common rules and matched default policy. It accepts
 untrusted input and returns error strings. Invalid policy and invalid bucket
 contents throw; repository validation returns descriptor/filesystem issues but

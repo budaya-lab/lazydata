@@ -190,6 +190,7 @@ for (const mode of ['dev', 'built'] as const) {
     const href = links.find((value) => value.includes('/datasets/'));
     assert.ok(href);
     const selected = new URL(href, url);
+    selected.searchParams.set('view', 'metadata');
     const response = await fetch(selected);
     assert.equal(response.status, 200);
     const html = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
@@ -210,24 +211,26 @@ for (const mode of ['dev', 'built'] as const) {
     assert.match(await returned.text(), /<h1\b[^>]*>Datasets<\/h1>/);
     const literal = links.find((value) => value.includes('ds-literal'));
     assert.ok(literal);
-    const literalResponse = await fetch(new URL(literal, url));
+    const literalUrl = new URL(literal, url);
+    literalUrl.searchParams.set('view', 'metadata');
+    const literalResponse = await fetch(literalUrl);
     assert.equal(literalResponse.status, 200);
     const literalHtml = await literalResponse.text();
     assert.match(literalHtml, /literal percent marker/);
     assert.ok(breadcrumb(literalHtml).includes('>ds-literal%2F</'));
-    const escapedResponse = await fetch(`${url}/datasets/${encodeURIComponent(unsafeName)}`);
+    const escapedResponse = await fetch(`${url}/datasets/${encodeURIComponent(unsafeName)}?view=metadata`);
     assert.equal(escapedResponse.status, 200);
     const escapedTrail = breadcrumb(await escapedResponse.text());
     assert.match(escapedTrail, /ds-&lt;img/);
     assert.doesNotMatch(escapedTrail, /<img\b|<a[^>]*>ds-/);
 
     for (const leaf of ['ds-missing', 'ds-unknown']) {
-      const missing = await fetch(`${url}/datasets/${leaf}`);
+      const missing = await fetch(`${url}/datasets/${leaf}?view=metadata`);
       assert.equal(missing.status, 404);
       assert.match(await missing.text(), /no datapackage\.json|Dataset not found/);
     }
     for (const leaf of ['../outside', 'ds-missing/../../outside']) {
-      const denied = await fetch(`${url}/datasets/${encodeURIComponent(leaf)}`);
+      const denied = await fetch(`${url}/datasets/${encodeURIComponent(leaf)}?view=metadata`);
       assert.ok([400, 404].includes(denied.status));
       assert.doesNotMatch(await denied.text(), /outside marker/);
     }
@@ -270,11 +273,11 @@ for (const mode of ['dev', 'built'] as const) {
     const { url, logs } = await serve(t, mode, root);
     const pages: Record<string, string> = {};
     for (const name of Object.keys(cases)) {
-      const response = await fetch(`${url}/datasets/ds-${name}`);
+      const response = await fetch(`${url}/datasets/ds-${name}?view=metadata`);
       assert.equal(response.status, 200, logs());
       pages[name] = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
       assert.match(pages[name], /<h2[^>]*>Metadata validation<\/h2>/);
-      assert.match(pages[name], /Resource files and buckets are not read/);
+      assert.match(pages[name], /Resource\s+files\s+and\s+buckets\s+are\s+not\s+read/);
       assert.doesNotMatch(pages[name], /<textarea|<form|Dataset is valid/);
       assert.equal(pages[name].includes(root), false);
     }
@@ -297,6 +300,71 @@ for (const mode of ['dev', 'built'] as const) {
     assert.match(pages.conflicts, /<dt>Stage<\/dt>\s*<dd>unknown; master<\/dd>/);
     assert.match(pages.conflicts, /keywords must contain at most one known stage/);
     assert.deepEqual(await snapshot(base), before);
+  });
+
+  test(`${mode}: opens rendered README first, flags exact template text and keeps metadata available separately`, async (t) => {
+    const base = await fixture(t);
+    const root = join(base, 'datasets');
+    for (const name of ['readme', 'template', 'missing', 'no-metadata', 'unsafe']) {
+      await fs.mkdir(join(root, `ds-${name}`), { recursive: true });
+    }
+    const readme = '# Supplied README\n\n<script>not executable</script>\n\n![Image caption](https://tracker.example/pixel)\n\n[Resource](data/private.csv)\n\n[Public](https://example.org/docs)\n';
+    await fs.writeFile(join(root, 'ds-readme/README.md'), readme);
+    await fs.writeFile(join(root, 'ds-readme/datapackage.json'), '{broken descriptor marker');
+    await fs.writeFile(join(root, 'ds-no-metadata/README.md'), '# README without descriptor');
+    await fs.writeFile(join(root, 'ds-missing/datapackage.json'), '{}');
+    const template = await fs.readFile(new URL('./fixtures/template-readme-current.md', import.meta.url));
+    const templatePath = join(root, 'ds-template/README.md');
+    await fs.writeFile(templatePath, template);
+    const outside = join(base, 'outside-marker');
+    await fs.writeFile(outside, 'outside README marker');
+    await fs.symlink(outside, join(root, 'ds-unsafe/README.md'));
+    const before = await snapshot(base);
+    const { url, logs } = await serve(t, mode, root);
+    const response = await fetch(`${url}/datasets/ds-readme`);
+    assert.equal(response.status, 200, logs());
+    const html = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
+    assert.match(html, /<h2>Supplied README<\/h2>/);
+    assert.doesNotMatch(html, /<script>|<img src="https:\/\/tracker|href="data\/|broken descriptor marker|Metadata validation/);
+    assert.match(html, /&lt;script/);
+    assert.match(html, /Image caption/);
+    const article = html.match(/<article\b[^>]*aria-label="Dataset README"[^>]*>[\s\S]*?<\/article>/);
+    assert.ok(article);
+    assert.doesNotMatch(article[0], /<script\b|<img\b|<iframe\b|<object\b/);
+    const publicLink = article[0].match(/<a\b[^>]*href="https:\/\/example.org\/docs"[^>]*>/);
+    assert.ok(publicLink);
+    assert.match(publicLink[0], /rel="[^"]*noreferrer/);
+    assert.match(publicLink[0], /rel="[^"]*noopener/);
+    assert.equal(html.includes(root), false);
+    const metadataLink = html.match(/<a\b[^>]*href="([^"]+)"[^>]*>Metadata<\/a>/);
+    assert.ok(metadataLink);
+    const metadataResponse = await fetch(new URL(metadataLink[1], response.url));
+    assert.equal(metadataResponse.status, 200);
+    const metadataHtml = (await metadataResponse.text()).replace(/<!--[\s\S]*?-->/g, '');
+    assert.match(metadataHtml, /Metadata validation/);
+    assert.match(metadataHtml, /datapackage.json is not valid JSON/);
+    const readmeLink = metadataHtml.match(/<a\b[^>]*href="([^"]+)"[^>]*>README<\/a>/);
+    assert.ok(readmeLink);
+    assert.match(await (await fetch(new URL(readmeLink[1], metadataResponse.url))).text(), /Supplied README/);
+    const flagged = await fetch(`${url}/datasets/ds-template`);
+    assert.equal(flagged.status, 200);
+    assert.match(await flagged.text(), /Template README/);
+    const independent = await fetch(`${url}/datasets/ds-no-metadata`);
+    assert.equal(independent.status, 200);
+    assert.match(await independent.text(), /README without descriptor/);
+    const missing = await fetch(`${url}/datasets/ds-missing`);
+    assert.equal(missing.status, 200);
+    assert.match(await missing.text(), /This dataset has no README.md/);
+    assert.equal((await fetch(`${url}/datasets/ds-missing?view=metadata`)).status, 200);
+    const unsafe = await fetch(`${url}/datasets/ds-unsafe`);
+    assert.equal(unsafe.status, 200);
+    assert.doesNotMatch(await unsafe.text(), /outside README marker/);
+    assert.equal((await fetch(`${url}/datasets/ds-unknown`)).status, 404);
+    assert.equal((await fetch(`${url}/datasets/ds-readme?view=outside`)).status, 400);
+    assert.deepEqual(await snapshot(base), before);
+    await fs.appendFile(templatePath, '\n');
+    assert.doesNotMatch(await (await fetch(`${url}/datasets/ds-template`)).text(), /Template README/);
+    assert.equal(await fs.readFile(outside, 'utf8'), 'outside README marker');
   });
 
   test(`${mode}: displays current metadata statuses beside every dataset link`, async (t) => {

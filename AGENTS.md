@@ -7,7 +7,7 @@ Read `README.md`, `docs/architecture.md` and `packages/validator/README.md` firs
 - Approved app slices: discovery, read-only descriptors, supplied metadata summary and shared metadata-validation display in `apps/web/`; task records live in `../tasks/steward-rebuild/`.
 - Approved app tooling: Svelte 5, SvelteKit 3, Node adapter, Vite/Svelte plugin, svelte-check and app-local TypeScript 6. Preserve validator TypeScript 7 and Node types.
 - Use installed Svelte/shadcn skills, official docs and autofixer. Dashboard-01 shell/list styling is approved with the user's Sera/taupe setup; retain semantic HTML, bounded reads and escaped text. No editing or dataset writes.
-- The app consumes the existing workspace validator's compiled public API and matched policy. Metadata checks only; no resource-file/bucket reads, migration or inferred metadata.
+- The app consumes the workspace validator's compiled public API and policy. Checks remain metadata-only; no resource/bucket scans, migration or inference. README-first viewing is separately approved with server-only markdown-it, escaped allowlisted Svelte nodes and exact reviewed template fingerprints; never inject HTML or load dataset images.
 - Keep portable checks free of I/O, Node globals and framework dependencies.
 - Keep Node filesystem checks and the CLI in separate entry points.
 - Treat parsed metadata and policy as unknown until runtime validation succeeds.

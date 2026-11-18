@@ -2,10 +2,10 @@
 
 An early Svelte 5/SvelteKit app. It lists immediate, non-symlink `ds-*` directories
 under an explicitly supplied parent folder, including folders without metadata.
-Select a dataset to view its `datapackage.json` as escaped, read-only text, even
-if its JSON is malformed. The viewer accepts regular single-link UTF-8 files up
-to 5 MiB, not symlinks or hard links. It shows supplied metadata and shared
-Lazydata metadata-validation results. It does not edit/migrate files, read
+Select a dataset to open its rendered `README.md`. Use **Metadata** to view
+supplied metadata, shared validation and escaped `datapackage.json` text, even
+if its JSON is malformed. Both viewers accept regular single-link UTF-8 files up
+to 5 MiB, not symlinks or hard links. It does not edit/migrate files, read
 resource files or buckets, count resources or generate READMEs. Metadata checks
 are not full repository validation or publication approval. The Python Steward
 remains the editing tool.
@@ -25,6 +25,24 @@ URLs and full-page navigation, so they also work without browser JavaScript.
 Missing values say **Not supplied**. Unreadable/unparseable summaries say
 **Unavailable**, not invented metadata. No raw descriptors or resource paths are
 returned in list data. Dataset links still open the read-only detail view.
+
+## README view
+
+README is the default dataset view. It works independently of `datapackage.json`.
+Missing, unreadable or unsafe README files show **README unavailable**, without
+hiding Metadata. Empty files are identified explicitly. Unknown datasets are 404.
+
+**Template README** means an exact byte match against reviewed tpl-dataset README
+fingerprints: releases v0.1.0 through v2.0.0 and pinned commit `0706c40`. No runtime
+checkout or network is needed. Edited text, whitespace, line-ending or BOM changes
+do not match. A nonmatch does not prove documentation quality or publication
+permission. The flag does not infer the dataset's origin or version.
+
+Markdown parses on the server into an allowlisted tree. Svelte renders its text
+normally; no raw HTML injection, script/highlighter/Mermaid execution or image
+loading occurs. Images show their alt text. Only credential-free HTTPS links are
+clickable, with noreferrer/noopener; relative/local links are text, not resource
+mappings. Markdown headings start below the dataset page heading. No files change.
 
 ## Metadata summary
 
@@ -49,8 +67,8 @@ DATASET_ROOT="/absolute/path/to/datasets" pnpm --filter @lazydata/steward dev
 ```
 
 Open the loopback URL printed in the terminal. Supply the **parent**, not an
-individual dataset. Refresh to discover changes; select a name to open its
-descriptor. Use the **Datasets** breadcrumb in the header to return to the
+individual dataset. Refresh to discover changes; select a name to open its README,
+then select Metadata for its descriptor and metadata checks. Use the **Datasets** breadcrumb in the header to return to the
 collection. The list shows metadata checks passed,
 metadata issues (with count), or metadata unavailable beside each dataset. Missing
 or unreadable descriptors do not hide other datasets. Refresh rechecks statuses.
@@ -88,7 +106,8 @@ The app uses TypeScript 6 for framework compatibility; the validator stays on 7.
 App `dev`, `check` and `build` explicitly compile the workspace validator first,
 using its public package exports and matched policy. No install hooks are needed.
 The validator is linked internally. The UI uses the approved shadcn-svelte
-components, bits-ui/date helpers and existing Tailwind/Lucide setup. Lifecycle
+components, bits-ui/date helpers and existing Tailwind/Lucide setup. Server-only
+markdown-it 15 includes its own types. Lifecycle
 scripts remain disabled during installation. New sidebar defaults use CSS classes
 instead of inline width styles, preserving the production CSP without unsafe
 inline styles/scripts. Development CSS injection uses SvelteKit's own CSP handling.
