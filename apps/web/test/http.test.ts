@@ -253,6 +253,10 @@ for (const mode of ['dev', 'built'] as const) {
       keywords: ['task:classification', 'project:example', 'stage:curated'],
       contributors: [{ title: 'Alice', roles: ['creator'] }, { title: 'Bob', roles: ['reviewer'] }],
       resources: [{ name: 'input', title: 'Input', path: 'missing.csv' }],
+      sources: [
+        { title: 'Web source', path: 'https://example.org/catalogue' },
+        { title: 'Local source', path: 'references/source.csv' },
+      ],
     };
     const cases = {
       modern: JSON.stringify(modern),
@@ -299,6 +303,19 @@ for (const mode of ['dev', 'built'] as const) {
       assert.equal(pages[name].includes(root), false);
     }
     assert.match(pages.modern, /Metadata checks passed/);
+    assert.match(pages.modern, /aria-label="Sources"/);
+    assert.match(pages.modern, /Add another source/);
+    for (const [name, value] of [
+      ['source-0-title', 'Web source'],
+      ['source-0-path', 'https://example.org/catalogue'],
+      ['source-1-title', 'Local source'],
+      ['source-1-path', 'references/source.csv'],
+    ]) {
+      const control = pages.modern.match(new RegExp(`<input\\b(?=[^>]*name="${name}")[^>]*>`))?.[0];
+      assert.ok(control, name);
+      assert.ok(control.includes(`value="${value}"`));
+      assert.match(control, /\srequired(?:[\s=>])/);
+    }
     assert.doesNotMatch(pages.legacy, /Legacy person|Legacy task/);
     assert.match(pages.legacy, /title is required/);
     assert.match(pages.legacy, /keywords must contain exactly one nonempty task: keyword/);

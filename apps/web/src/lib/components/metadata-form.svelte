@@ -5,7 +5,9 @@
     import { Textarea } from "$lib/components/ui/textarea/index.js";
     import MetadataKeywords from "$lib/components/metadata-keywords.svelte";
     import MetadataResources from "$lib/components/metadata-resources.svelte";
+    import MetadataSources from "$lib/components/metadata-sources.svelte";
     import type { ResourceModel } from "$lib/resource-fields.ts";
+    import type { SourceModel } from "$lib/source-fields.ts";
     import MetadataVersionCreated from "$lib/components/metadata-version-created.svelte";
 
     let {
@@ -17,6 +19,7 @@
         keywordFields,
         resourceModel,
         resourceCountUrl,
+        sourceModel,
         stageOptions,
         issues,
         reloadUrl,
@@ -29,6 +32,7 @@
         keywordFields: { tasks: string[]; projects: string[]; stage: string; extraKeywords: string[] };
         resourceModel: ResourceModel;
         resourceCountUrl: string;
+        sourceModel: SourceModel;
         stageOptions: { value: string; label: string }[];
         issues: string[];
         reloadUrl: string;
@@ -132,6 +136,7 @@
         </Field.Set>
         <MetadataKeywords {...keywordFields} {stageOptions} />
         <MetadataResources model={resourceModel} countUrl={resourceCountUrl} />
+        <MetadataSources model={sourceModel} />
     </Field.Group>
     <section
         id="metadata-validation"

@@ -5,6 +5,7 @@ import { DiscoveryError } from "../../../lib/server/discovery.ts";
 import { inspectMetadata, stageOptions } from "../../../lib/server/metadata.ts";
 import { readReadme } from "../../../lib/server/readme.ts";
 import { resourceFormModel, type ResourceOption } from '../../../lib/resource-fields.ts';
+import { sourceFormModel } from '../../../lib/source-fields.ts';
 import { listResourcePaths, ResourceReadError } from '../../../lib/server/resource-files.ts';
 import type { PageServerLoad } from "./$types";
 
@@ -26,8 +27,9 @@ export const load = (async ({ params, url }) => {
 			resourceMessage = cause.message;
 		}
 		const resourceModel = resourceFormModel(snapshot.text, options);
+		const sourceModel = sourceFormModel(snapshot.text);
 		if (resourceMessage) resourceModel.message = [resourceModel.message, resourceMessage].filter(Boolean).join(' ');
-		return { name: params.name, view: 'metadata' as const, issues, overview, keywordFields, stageOptions, resourceModel };
+		return { name: params.name, view: 'metadata' as const, issues, overview, keywordFields, stageOptions, resourceModel, sourceModel };
 	} catch (cause) {
 		if (cause instanceof DescriptorError || cause instanceof DiscoveryError) {
 			console.error(cause);
