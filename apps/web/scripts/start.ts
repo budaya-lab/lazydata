@@ -1,6 +1,15 @@
+import type { IncomingMessage, Server } from 'node:http';
+
 if (process.env.SOCKET_PATH) {
   throw new Error('SOCKET_PATH is not supported by the local Steward.');
 }
 
 process.env.HOST = '127.0.0.1';
-await import(new URL('../build/index.js', import.meta.url).href);
+process.env.PROTOCOL_HEADER = 'x-lazydata-protocol';
+delete process.env.HOST_HEADER;
+delete process.env.PORT_HEADER;
+const { server }: { server: Server } = await import(new URL('../build/index.js', import.meta.url).href);
+// This process serves plain HTTP. Never trust a client-supplied proxy protocol.
+server.prependListener('request', (request: IncomingMessage) => {
+  request.headers['x-lazydata-protocol'] = 'http';
+});

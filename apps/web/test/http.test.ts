@@ -51,6 +51,7 @@ async function serve(t: TestContext, mode: 'dev' | 'built', root?: string): Prom
   delete env.DATASET_ROOT;
   delete env.SOCKET_PATH;
   if (root !== undefined) env.DATASET_ROOT = root;
+  if (mode === 'built') Object.assign(env, { PROTOCOL_HEADER: 'x-forwarded-proto', HOST_HEADER: 'x-forwarded-host', PORT_HEADER: 'x-forwarded-port' });
   const args = mode === 'built'
     ? ['scripts/start.ts']
     : [fileURLToPath(new URL('bin/vite.js', import.meta.resolve('vite/package.json'))),
@@ -94,6 +95,16 @@ test('local startup rejects a socket override before loading the server', async 
 });
 
 for (const mode of ['dev', 'built'] as const) {
+  test(`${mode}: keeps the local HTTP origin despite forged proxy headers`, async (t) => {
+    const root = await fixture(t);
+    const { url, logs } = await serve(t, mode, root);
+    const headers = { origin: url, 'x-lazydata-protocol': 'https', 'x-forwarded-proto': 'https',
+      'x-forwarded-host': 'untrusted.example', 'x-forwarded-port': '443' };
+    assert.equal((await fetch(url, { headers })).status, 200, logs());
+    assert.equal((await fetch(url, { method: 'POST', headers, body: new URLSearchParams() })).status, 405);
+    assert.equal((await fetch(url, { headers: { ...headers, origin: 'https://untrusted.example' } })).status, 403);
+  });
+
   test(`${mode}: lists escaped names and statuses without following links or writing files`, async (t) => {
     const base = await fixture(t);
     const root = join(base, 'datasets');
