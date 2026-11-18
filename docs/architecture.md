@@ -21,6 +21,13 @@ invalid JSON. App dev/check/build explicitly compile the validator first; the
 shared package remains framework-free. External consumers still use the pinned
 compiled release archives described below.
 
+The dashboard UI uses SSR plus browser hydration for shadcn sidebar controls.
+Filesystem access and validation stay in server-only modules. List data contains
+only folder identity, metadata status and allowlisted supplied summary fields;
+raw descriptors remain detail-only. Search/status filters are bounded, validated
+GET parameters, never roots or filesystem paths. Workspace counts do not change
+with filtering. Normal GET navigation and refresh rerun the read-only checks.
+
 The validator owns the common rules and matched default policy. It accepts
 untrusted input and returns error strings. Invalid policy and invalid bucket
 contents throw; repository validation returns descriptor/filesystem issues but

@@ -7,8 +7,6 @@ import { DiscoveryError } from "../../../lib/server/discovery.ts";
 import { inspectMetadata } from "../../../lib/server/metadata.ts";
 import type { PageServerLoad } from "./$types";
 
-export const csr = false;
-
 export const load = (async ({ params }) => {
 	try {
 		const text = await readDescriptor(process.env.DATASET_ROOT, params.name);

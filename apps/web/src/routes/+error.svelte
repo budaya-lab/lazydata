@@ -9,8 +9,8 @@
     <title>Dataset error — Lazydata</title>
 </svelte:head>
 
-<main>
-    <h1>Dataset error</h1>
+<section class="flex flex-col gap-4">
+    <h1 class="font-heading text-3xl font-semibold">Dataset error</h1>
     <p>{page.error?.message}</p>
-    <a href={resolve("/")}>Back to datasets</a>
-</main>
+    <a href={resolve("/")} class="w-fit underline underline-offset-4">Back to datasets</a>
+</section>

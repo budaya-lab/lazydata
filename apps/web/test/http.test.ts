@@ -36,6 +36,19 @@ async function snapshot(root: string): Promise<Record<string, string>> {
   return result;
 }
 
+function breadcrumb(html: string): string {
+  const nav = html.match(/<nav\b[^>]*aria-label="Breadcrumb"[^>]*>[\s\S]*?<\/nav>/);
+  assert.ok(nav, 'Expected breadcrumb navigation');
+  return nav[0].replace(/<!--[\s\S]*?-->/g, '');
+}
+
+function tableRow(html: string, name: string): string {
+  const row = [...html.matchAll(/<tr\b[^>]*>[\s\S]*?<\/tr>/g)]
+    .find(([row]) => row.includes(`>${name}</a>`));
+  assert.ok(row, `Missing dataset row: ${name}`);
+  return row[0];
+}
+
 async function serve(t: TestContext, mode: 'dev' | 'built', root?: string): Promise<{ url: string; logs: () => string }> {
   const reservation = createServer();
   reservation.listen(0, '127.0.0.1');
@@ -124,8 +137,11 @@ for (const mode of ['dev', 'built'] as const) {
       const response = await fetch(url + path);
       assert.equal(response.status, 200);
       const html = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
-      assert.match(html, /<h1>Datasets<\/h1>/);
-      const names = [...html.matchAll(/<li><a href="[^"]+">(.*?)<\/a>/gs)].map((match) => match[1]);
+      assert.match(html, /<h1\b[^>]*>Datasets<\/h1>/);
+      const trail = breadcrumb(html);
+      assert.match(trail, />Datasets<\//);
+      assert.doesNotMatch(trail, /<a\b/);
+      const names = [...html.matchAll(/data-dataset-link[^>]*>([^<]+)<\/a>/g)].map((match) => match[1]);
       assert.equal(names.length, 3);
       assert.match(names[0], /^ds-&lt;b(?:>|&gt;)&amp;$/);
       assert.deepEqual(names.slice(1), ['ds-alpha', 'ds-zeta']);
@@ -134,7 +150,7 @@ for (const mode of ['dev', 'built'] as const) {
       assert.equal(response.headers.get('access-control-allow-origin'), null);
       assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
       assert.match(response.headers.get('content-security-policy') ?? '', /frame-ancestors 'none'/);
-      assert.doesNotMatch(html, /<style\b|rel="stylesheet"|\sstyle=/);
+      assert.doesNotMatch(html, /\sstyle=/);
     }
     assert.equal((await fetch(url, { headers: { origin: 'https://untrusted.example' } })).status, 403, logs());
     const foreignHost = await new Promise<number | undefined>((resolve, reject) => {
@@ -159,6 +175,9 @@ for (const mode of ['dev', 'built'] as const) {
     await fs.mkdir(join(root, 'ds-missing'));
     await fs.mkdir(join(root, 'ds-literal%2F'));
     await fs.writeFile(join(root, 'ds-literal%2F/datapackage.json'), 'literal percent marker');
+    const unsafeName = 'ds-<img src=x onerror=alert(1)>';
+    await fs.mkdir(join(root, unsafeName));
+    await fs.writeFile(join(root, unsafeName, 'datapackage.json'), '{}');
     await fs.mkdir(outside);
     const text = '{invalid JSON\n<script>not executable</script> & raw text\n';
     const path = join(directory, 'datapackage.json');
@@ -175,18 +194,32 @@ for (const mode of ['dev', 'built'] as const) {
     assert.equal(response.status, 200);
     const html = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
     assert.match(html, /datapackage\.json/);
-    assert.match(html, /<pre><code>\{invalid JSON/);
+    assert.match(html, /<pre[^>]*><code>\{invalid JSON/);
     assert.match(html, /&lt;script(?:>|&gt;)not executable&lt;\/script(?:>|&gt;)/);
-    assert.doesNotMatch(html, /<script>|<textarea|<form|<style\b|outside marker/);
+    assert.doesNotMatch(html, /<script>|<textarea|<form|outside marker/);
     assert.equal(html.includes(root), false);
-    const back = html.match(/<a href="([^"]+)">Back to datasets<\/a>/);
-    assert.ok(back);
-    assert.equal((await fetch(new URL(back[1], selected))).status, 200);
+    assert.doesNotMatch(html, /Back to datasets/);
+    const trail = breadcrumb(html);
+    assert.ok(trail.includes(`>${name}</`));
+    const collection = trail.match(/<a\b[^>]*href="([^"]+)"[^>]*>Datasets<\/a>/);
+    assert.ok(collection);
+    const collectionUrl = new URL(collection[1], selected);
+    assert.equal(collectionUrl.pathname, '/');
+    const returned = await fetch(collectionUrl);
+    assert.equal(returned.status, 200);
+    assert.match(await returned.text(), /<h1\b[^>]*>Datasets<\/h1>/);
     const literal = links.find((value) => value.includes('ds-literal'));
     assert.ok(literal);
     const literalResponse = await fetch(new URL(literal, url));
     assert.equal(literalResponse.status, 200);
-    assert.match(await literalResponse.text(), /literal percent marker/);
+    const literalHtml = await literalResponse.text();
+    assert.match(literalHtml, /literal percent marker/);
+    assert.ok(breadcrumb(literalHtml).includes('>ds-literal%2F</'));
+    const escapedResponse = await fetch(`${url}/datasets/${encodeURIComponent(unsafeName)}`);
+    assert.equal(escapedResponse.status, 200);
+    const escapedTrail = breadcrumb(await escapedResponse.text());
+    assert.match(escapedTrail, /ds-&lt;img/);
+    assert.doesNotMatch(escapedTrail, /<img\b|<a[^>]*>ds-/);
 
     for (const leaf of ['ds-missing', 'ds-unknown']) {
       const missing = await fetch(`${url}/datasets/${leaf}`);
@@ -240,9 +273,9 @@ for (const mode of ['dev', 'built'] as const) {
       const response = await fetch(`${url}/datasets/ds-${name}`);
       assert.equal(response.status, 200, logs());
       pages[name] = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
-      assert.match(pages[name], /<h2>Metadata validation<\/h2>/);
+      assert.match(pages[name], /<h2[^>]*>Metadata validation<\/h2>/);
       assert.match(pages[name], /Resource files and buckets are not read/);
-      assert.doesNotMatch(pages[name], /<style\b|rel="stylesheet"|<textarea|<form|Dataset is valid/);
+      assert.doesNotMatch(pages[name], /<textarea|<form|Dataset is valid/);
       assert.equal(pages[name].includes(root), false);
     }
     assert.match(pages.modern, /<dt>Creators<\/dt>\s*<dd>Alice<\/dd>/);
@@ -256,8 +289,8 @@ for (const mode of ['dev', 'built'] as const) {
     assert.match(pages.legacy, /title is required/);
     assert.match(pages.legacy, /keywords must contain exactly one nonempty task: keyword/);
     assert.match(pages.malformed, /datapackage.json is not valid JSON/);
-    assert.match(pages.malformed, /<pre><code>\{invalid JSON/);
-    assert.doesNotMatch(pages.unsafe, /<img|<script>|\[object Object\]/);
+    assert.match(pages.malformed, /<pre[^>]*><code>\{invalid JSON/);
+    assert.doesNotMatch(pages.unsafe, /<img src=x|<script>|\[object Object\]/);
     assert.match(pages.unsafe, /&lt;img/);
     assert.match(pages.unsafe, /resource bad&lt;script(?:>|&gt;) count must be/);
     assert.match(pages.conflicts, /<dt>Task<\/dt>\s*<dd>one; two<\/dd>/);
@@ -287,12 +320,12 @@ for (const mode of ['dev', 'built'] as const) {
     const response = await fetch(url);
     assert.equal(response.status, 200, logs());
     const html = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
-    assert.match(html, /ds-passed<\/a>\s*— Metadata checks passed/);
-    assert.match(html, /ds-issues<\/a>\s*— Metadata issues \(1\)/);
-    assert.match(html, /ds-missing<\/a>\s*— Metadata unavailable:/);
-    assert.match(html, /ds-unsafe<\/a>\s*— Metadata unavailable:/);
+    assert.match(tableRow(html, 'ds-passed'), /Metadata checks passed/);
+    assert.match(tableRow(html, 'ds-issues'), /Metadata issues \(1\)/);
+    assert.match(tableRow(html, 'ds-missing'), /Metadata unavailable/);
+    assert.match(tableRow(html, 'ds-unsafe'), /Metadata unavailable/);
     assert.match(html, /Resource files and buckets are not read/);
-    assert.doesNotMatch(html, /outside marker|<style\b|Dataset is valid/);
+    assert.doesNotMatch(html, /outside marker|Dataset is valid/);
     assert.equal(html.includes(root), false);
     assert.deepEqual(await snapshot(base), before);
 
@@ -300,8 +333,81 @@ for (const mode of ['dev', 'built'] as const) {
     const fixed = await snapshot(base);
     const refreshed = await fetch(url);
     assert.equal(refreshed.status, 200, logs());
-    assert.match((await refreshed.text()).replace(/<!--[\s\S]*?-->/g, ''), /ds-issues<\/a>\s*— Metadata checks passed/);
+    assert.match(tableRow((await refreshed.text()).replace(/<!--[\s\S]*?-->/g, ''), 'ds-issues'), /Metadata checks passed/);
     assert.deepEqual(await snapshot(base), fixed);
+  });
+
+  test(`${mode}: serves a dashboard table with supplied metadata, stable totals and GET filters`, async (t) => {
+    const base = await fixture(t);
+    const root = join(base, 'datasets');
+    const modern = { name: 'example', title: '<b>Supplied title</b>', description: 'unneeded-list-marker',
+      keywords: ['task:classification', 'project:example', 'stage:curated'],
+      contributors: [{ title: 'Alice', roles: ['creator'] }],
+      resources: [{ name: 'input', title: 'Input', path: 'private-resource-marker.csv' }],
+    };
+    for (const name of ['modern', 'issues', 'missing']) await fs.mkdir(join(root, `ds-${name}`), { recursive: true });
+    await fs.writeFile(join(root, 'ds-modern/datapackage.json'), JSON.stringify(modern));
+    await fs.writeFile(join(root, 'ds-issues/datapackage.json'), '{invalid JSON');
+    const before = await snapshot(base);
+    const { url, logs } = await serve(t, mode, root);
+    const response = await fetch(url);
+    assert.equal(response.status, 200, logs());
+    const html = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
+    assert.match(html, /aria-label="Dataset views"/);
+    assert.match(html, /<table\b/);
+    assert.match(html, /<caption[^>]*>Showing 3 of 3 datasets/);
+    for (const heading of ['Dataset', 'Metadata checks', 'Task', 'Project', 'Stage', 'Creators']) {
+      assert.match(html, new RegExp(`<th[^>]*>${heading}</th>`));
+    }
+    assert.match(html, /&lt;b(?:>|&gt;)Supplied title&lt;\/b(?:>|&gt;)/);
+    assert.match(html, /Alice/);
+    assert.match(html, /<form[^>]*method="GET"[^>]*role="search"/i);
+    assert.equal([...html.matchAll(/<main\b/g)].length, 1);
+    assert.match(html, /aria-current="page"[^>]*>[\s\S]*?All datasets/);
+    assert.match(html, /<form[^>]*data-sveltekit-reload/);
+    assert.match(html, /name="q"/);
+    assert.match(html, /name="status"/);
+    assert.doesNotMatch(html, /<b>|private-resource-marker|unneeded-list-marker/);
+    const csp = response.headers.get('content-security-policy') ?? '';
+    assert.doesNotMatch(csp, /unsafe-eval/);
+    assert.match(csp, /script-src 'self' 'nonce-/);
+    if (mode === 'built') assert.doesNotMatch(csp, /unsafe-inline/);
+    assert.match(csp, /frame-ancestors 'none'/);
+    if (mode === 'built') {
+      const css = html.match(/<link[^>]*href="([^"]+\.css)"/);
+      assert.ok(css, 'Built page references a local stylesheet');
+      const stylesheet = await fetch(new URL(css[1], url));
+      assert.equal(stylesheet.status, 200);
+      assert.match(stylesheet.headers.get('content-type') ?? '', /text\/css/);
+      assert.doesNotMatch(await stylesheet.text(), /https?:\/\/fonts\.(googleapis|gstatic)/);
+    }
+    for (const [query, expected] of [
+      ['?q=ALICE&status=passed', ['ds-modern']],
+      ['?q=classification&status=issues', []],
+      ['?status=issues', ['ds-issues']],
+      ['?q=ds-missing&status=unavailable', ['ds-missing']],
+      ['?q=%5B.*%5D&status=all', []],
+    ] as const) {
+      const filtered = await fetch(url + query);
+      assert.equal(filtered.status, 200, logs());
+      const body = (await filtered.text()).replace(/<!--[\s\S]*?-->/g, '');
+      const links = [...body.matchAll(/data-dataset-link[^>]*>([^<]+)<\/a>/g)].map((match) => match[1]);
+      assert.deepEqual(links, expected);
+      assert.match(body, /data-count="total"[^>]*>3</);
+      assert.match(body, /data-count="passed"[^>]*>1</);
+      assert.match(body, /data-count="issues"[^>]*>1</);
+      assert.match(body, /data-count="unavailable"[^>]*>1</);
+      if (!expected.length) assert.match(body, /No matching datasets/);
+    }
+    const escaped = await fetch(url + '?q=%22%3E%3Cimg%20src=x%20onerror=alert(1)%3E');
+    assert.equal(escaped.status, 200);
+    assert.doesNotMatch(await escaped.text(), /<img\s+src=x/);
+    for (const query of ['?status=invalid', `?q=${'a'.repeat(201)}`]) {
+      const invalid = await fetch(url + query);
+      assert.equal(invalid.status, 400);
+      assert.equal((await invalid.text()).includes(root), false);
+    }
+    assert.deepEqual(await snapshot(base), before);
   });
 
   test(`${mode}: distinguishes empty roots from failed reads`, async (t) => {
@@ -318,7 +424,7 @@ for (const mode of ['dev', 'built'] as const) {
     const html = await missing.text();
     assert.match(html, /Could not read DATASET_ROOT/);
     assert.equal(html.includes(root), false);
-    assert.doesNotMatch(html, /ENOENT|at discoverDatasets|No ds-\* folders found|<style\b|rel="stylesheet"|\sstyle=/);
+    assert.doesNotMatch(html, /ENOENT|at discoverDatasets|No ds-\* folders found|\sstyle=/);
   });
 
   test(`${mode}: missing configuration never falls back to the working directory`, async (t) => {

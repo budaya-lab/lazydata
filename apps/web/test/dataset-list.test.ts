@@ -40,11 +40,38 @@ test('lists sorted passed, issue and unavailable statuses without hiding incompl
     ['ds-invalid', 'issues'], ['ds-missing', 'unavailable'],
     ['ds-unsafe', 'unavailable'], ['ds-valid', 'passed'],
   ]);
-  assert.deepEqual(rows[0], { name: 'ds-invalid', status: 'issues', issueCount: 1 });
-  assert.deepEqual(rows[3], { name: 'ds-valid', status: 'passed', issueCount: 0 });
+  assert.deepEqual(rows[0], { name: 'ds-invalid', status: 'issues', issueCount: 1, summary: null });
+  assert.deepEqual(rows[3], { name: 'ds-valid', status: 'passed', issueCount: 0, summary: [
+    { label: 'Title', values: ['Example'] }, { label: 'Creators', values: [] },
+    { label: 'Task', values: ['example'] }, { label: 'Project', values: ['example'] },
+    { label: 'Stage', values: ['master'] },
+  ] });
   assert.equal(JSON.stringify(rows).includes(root), false);
   assert.equal(JSON.stringify(rows).includes('outside marker'), false);
   assert.equal(await fs.readFile(marker, 'utf8'), 'outside marker');
+});
+
+test('returns only supplied table metadata, preserving conflicts and excluding raw/unneeded fields', async (t) => {
+  const root = await fixture(t);
+  await dataset(root, 'ds-modern', JSON.stringify({ ...JSON.parse(valid),
+    title: '<script>literal title</script>', description: 'unneeded description marker',
+    contributors: [{ title: 'Alice', roles: ['creator'] }, { title: 'Reviewer', roles: ['reviewer'] }],
+    keywords: ['task:one', 'task:two', 'project:', 'stage:unknown'],
+    resources: [{ name: 'input', path: 'private-resource-marker.csv' }],
+  }));
+  const [row] = await listDatasets(root);
+  assert.deepEqual(row.summary, [
+    { label: 'Title', values: ['<script>literal title</script>'] },
+    { label: 'Creators', values: ['Alice'] },
+    { label: 'Task', values: ['one', 'two'] },
+    { label: 'Project', values: ['""'] },
+    { label: 'Stage', values: ['unknown'] },
+  ]);
+  assert.doesNotMatch(JSON.stringify(row), /Reviewer|unneeded description marker|private-resource-marker/);
+  await dataset(root, 'ds-legacy', JSON.stringify({ creator: 'Legacy name', task: 'Legacy task' }));
+  const legacy = (await listDatasets(root)).find(({ name }) => name === 'ds-legacy');
+  assert.ok(legacy?.summary);
+  assert.ok(legacy.summary.every(({ values }) => values.length === 0));
 });
 
 test('reports permission failures per row while checking the other datasets', async (t) => {

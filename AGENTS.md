@@ -6,7 +6,7 @@ Read `README.md`, `docs/architecture.md` and `packages/validator/README.md` firs
 - Target Node.js 24 LTS; keep CI, engine requirements, Node types and docs aligned.
 - Approved app slices: discovery, read-only descriptors, supplied metadata summary and shared metadata-validation display in `apps/web/`; task records live in `../tasks/steward-rebuild/`.
 - Approved app tooling: Svelte 5, SvelteKit 3, Node adapter, Vite/Svelte plugin, svelte-check and app-local TypeScript 6. Preserve validator TypeScript 7 and Node types.
-- Use the installed Svelte skills/MCP docs and autofixer for components. Plain semantic HTML only; no CSS, editing or dataset writes. Keep bounded descriptor reads and escape all displayed text.
+- Use installed Svelte/shadcn skills, official docs and autofixer. Dashboard-01 shell/list styling is approved with the user's Sera/taupe setup; retain semantic HTML, bounded reads and escaped text. No editing or dataset writes.
 - The app consumes the existing workspace validator's compiled public API and matched policy. Metadata checks only; no resource-file/bucket reads, migration or inferred metadata.
 - Keep portable checks free of I/O, Node globals and framework dependencies.
 - Keep Node filesystem checks and the CLI in separate entry points.
@@ -16,7 +16,7 @@ Read `README.md`, `docs/architecture.md` and `packages/validator/README.md` firs
 - Preserve optional metadata, directory/count rules, path safety and bucket limits.
 - Never execute dataset-local scripts or infer provenance or publication permissions.
 - Prefer small functions, clear types and blank lines between logical steps.
-- Add behavior tests, not source-layout assertions. Preserve isolated package and VM checks.
+- Test our dataset/navigation behavior and integration boundaries, not shadcn components or library-specific markup/classes. No source-layout assertions. Preserve isolated package and VM checks.
 - Author tests/fixtures in TypeScript and typecheck them; keep generated JavaScript consumer probes as JavaScript.
 - Run `pnpm typecheck`, `pnpm test`, app `check`/`test`, `pnpm audit` and `git diff --check` before handoff. App tests use synthetic temporary folders only.
 - No separate linter is configured. Say so rather than claiming lint passed.
