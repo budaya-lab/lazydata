@@ -4,9 +4,9 @@ Read `README.md`, `docs/architecture.md` and `packages/validator/README.md` firs
 
 - Use pnpm 12.x at this workspace root and in CI. Keep its lockfile; do not require an exact pnpm patch version.
 - Target Node.js 24 LTS; keep CI, engine requirements, Node types and docs aligned.
-- Approved app slices: discovery, read-only descriptors, supplied metadata summary and shared metadata-validation display in `apps/web/`; task records live in `../tasks/steward-rebuild/`.
+- App slices: discovery/dashboard, README-first viewing, read-only JSON and shared metadata checks in `apps/web/`. Owner scrapped the previous editor. The next explicitly approved increment is only Overview's Name, Title and Description with inline required errors. Prefill these from the current descriptor's supplied strings, retaining blank errors for missing/non-string values. Name/Title share a responsive row; Description is below. Inputs are local overrides; saving is not implemented. Keep navigation/footer, disabled Save/Reset and working Reload. No save endpoint or filesystem writer; do not restore the former editor or add other fields implicitly. See `../tasks/steward-rebuild/metadata-placeholder.md`.
 - Approved app tooling: Svelte 5, SvelteKit 3, Node adapter, Vite/Svelte plugin, svelte-check and app-local TypeScript 6. Preserve validator TypeScript 7 and Node types.
-- Use installed Svelte/shadcn skills, official docs and autofixer. Dashboard-01 shell/list styling is approved with the user's Sera/taupe setup; retain semantic HTML, bounded reads and escaped text. No editing or dataset writes.
+- Use installed Svelte/shadcn skills, official docs and autofixer. Keep the user's Sera/taupe dashboard, fonts and scoped `form-ui` control treatment. Retain semantic HTML, bounded reads and escaped text. The app is read-only; tests use synthetic fixtures only.
 - The app consumes the workspace validator's compiled public API and policy. Checks remain metadata-only; no resource/bucket scans, migration or inference. README-first viewing is separately approved with server-only markdown-it, escaped allowlisted Svelte nodes and exact reviewed template fingerprints; never inject HTML or load dataset images.
 - Keep portable checks free of I/O, Node globals and framework dependencies.
 - Keep Node filesystem checks and the CLI in separate entry points.

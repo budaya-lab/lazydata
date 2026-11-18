@@ -28,6 +28,16 @@ test('uses real shared metadata checks and displays supplied fields', () => {
   assert.deepEqual(field(report, 'Licences'), ['[{"name":"CC0-1.0"}]']);
 });
 
+test('loads only supplied strings into the three overview inputs without coercion', () => {
+  const supplied = { name: 'package-name', title: '  Exact title  ', description: 'Line one\nLine two' };
+  assert.deepEqual(inspectMetadata(JSON.stringify(supplied)).overview, supplied);
+  assert.deepEqual(inspectMetadata('{"name":42,"title":null,"description":{"text":"not a string"}}').overview,
+    { name: '', title: '', description: '' });
+  for (const text of ['{}', 'null', '[]', '{broken']) {
+    assert.deepEqual(inspectMetadata(text).overview, { name: '', title: '', description: '' });
+  }
+});
+
 test('shows only explicitly declared creators, without promoting other contributors', () => {
   const report = inspectMetadata(JSON.stringify({ ...descriptor, contributors: [
     { title: 'Alice', roles: ['creator', 'curator'] },

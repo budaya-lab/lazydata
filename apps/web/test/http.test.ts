@@ -190,7 +190,7 @@ for (const mode of ['dev', 'built'] as const) {
     const href = links.find((value) => value.includes('/datasets/'));
     assert.ok(href);
     const selected = new URL(href, url);
-    selected.searchParams.set('view', 'metadata');
+    selected.searchParams.set('view', 'datapackage');
     const response = await fetch(selected);
     assert.equal(response.status, 200);
     const html = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
@@ -212,7 +212,7 @@ for (const mode of ['dev', 'built'] as const) {
     const literal = links.find((value) => value.includes('ds-literal'));
     assert.ok(literal);
     const literalUrl = new URL(literal, url);
-    literalUrl.searchParams.set('view', 'metadata');
+    literalUrl.searchParams.set('view', 'datapackage');
     const literalResponse = await fetch(literalUrl);
     assert.equal(literalResponse.status, 200);
     const literalHtml = await literalResponse.text();
@@ -244,7 +244,7 @@ for (const mode of ['dev', 'built'] as const) {
     assert.equal(await fs.readFile(join(outside, 'datapackage.json'), 'utf8'), 'outside marker');
   });
 
-  test(`${mode}: shows supplied metadata and shared issues without migrating or scanning resources`, async (t) => {
+  test(`${mode}: shows overview fields and read-only shared issues without scanning resources`, async (t) => {
     const base = await fixture(t);
     const root = join(base, 'datasets');
     const modern = {
@@ -260,6 +260,7 @@ for (const mode of ['dev', 'built'] as const) {
       unsafe: JSON.stringify({ ...modern, title: '<img src=x onerror=alert(1)>',
         contributors: [{ title: '<script>creator</script>', roles: ['creator'] }],
         resources: [{ name: 'bad<script>', path: [], count: -1 }] }),
+      unusual: JSON.stringify({ ...modern, title: 42, created: 'supplied date text\nkept verbatim', contributors: [false, { title: 'Alice', roles: 42 }], resources: [{ path: {} }] }),
       conflicts: JSON.stringify({ ...modern, keywords: ['task:one', 'task:two', 'project:', 'stage:unknown', 'stage:master'] }),
     };
     for (const [name, text] of Object.entries(cases)) {
@@ -276,28 +277,21 @@ for (const mode of ['dev', 'built'] as const) {
       const response = await fetch(`${url}/datasets/ds-${name}?view=metadata`);
       assert.equal(response.status, 200, logs());
       pages[name] = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
-      assert.match(pages[name], /<h2[^>]*>Metadata validation<\/h2>/);
+      assert.match(pages[name], /aria-label="Metadata form"/);
+      assert.match(pages[name], /Metadata validation/);
       assert.match(pages[name], /Resource\s+files\s+and\s+buckets\s+are\s+not\s+read/);
-      assert.doesNotMatch(pages[name], /<textarea|<form|Dataset is valid/);
+      assert.equal([...pages[name].matchAll(/<(?:input|textarea)\b/g)].length, 3);
+      assert.doesNotMatch(pages[name], /name="submission"/);
+      assert.doesNotMatch(pages[name], /<pre\b|<dl\b|Dataset is valid/);
       assert.equal(pages[name].includes(root), false);
     }
-    assert.match(pages.modern, /<dt>Creators<\/dt>\s*<dd>Alice<\/dd>/);
-    assert.match(pages.modern, /<dt>Task<\/dt>\s*<dd>classification<\/dd>/);
-    assert.match(pages.modern, /<dt>Project<\/dt>\s*<dd>example<\/dd>/);
-    assert.match(pages.modern, /<dt>Stage<\/dt>\s*<dd>curated<\/dd>/);
     assert.match(pages.modern, /Metadata checks passed/);
-    for (const label of ['Creators', 'Task', 'Project', 'Stage']) {
-      assert.match(pages.legacy, new RegExp(`<dt>${label}</dt>\\s*<dd>Not supplied</dd>`));
-    }
+    assert.doesNotMatch(pages.legacy, /Legacy person|Legacy task/);
     assert.match(pages.legacy, /title is required/);
     assert.match(pages.legacy, /keywords must contain exactly one nonempty task: keyword/);
     assert.match(pages.malformed, /datapackage.json is not valid JSON/);
-    assert.match(pages.malformed, /<pre[^>]*><code>\{invalid JSON/);
     assert.doesNotMatch(pages.unsafe, /<img src=x|<script>|\[object Object\]/);
-    assert.match(pages.unsafe, /&lt;img/);
     assert.match(pages.unsafe, /resource bad&lt;script(?:>|&gt;) count must be/);
-    assert.match(pages.conflicts, /<dt>Task<\/dt>\s*<dd>one; two<\/dd>/);
-    assert.match(pages.conflicts, /<dt>Stage<\/dt>\s*<dd>unknown; master<\/dd>/);
     assert.match(pages.conflicts, /keywords must contain at most one known stage/);
     assert.deepEqual(await snapshot(base), before);
   });
@@ -341,8 +335,11 @@ for (const mode of ['dev', 'built'] as const) {
     const metadataResponse = await fetch(new URL(metadataLink[1], response.url));
     assert.equal(metadataResponse.status, 200);
     const metadataHtml = (await metadataResponse.text()).replace(/<!--[\s\S]*?-->/g, '');
-    assert.match(metadataHtml, /Metadata validation/);
+    assert.match(metadataHtml, /aria-label="Metadata form"/);
     assert.match(metadataHtml, /datapackage.json is not valid JSON/);
+    const rawResponse = await fetch(`${url}/datasets/ds-readme?view=datapackage`);
+    assert.equal(rawResponse.status, 200);
+    assert.match(await rawResponse.text(), /broken descriptor marker/);
     const readmeLink = metadataHtml.match(/<a\b[^>]*href="([^"]+)"[^>]*>README<\/a>/);
     assert.ok(readmeLink);
     assert.match(await (await fetch(new URL(readmeLink[1], metadataResponse.url))).text(), /Supplied README/);
@@ -365,6 +362,74 @@ for (const mode of ['dev', 'built'] as const) {
     await fs.appendFile(templatePath, '\n');
     assert.doesNotMatch(await (await fetch(`${url}/datasets/ds-template`)).text(), /Template README/);
     assert.equal(await fs.readFile(outside, 'utf8'), 'outside README marker');
+  });
+
+  test(`${mode}: prefills overview from current descriptor values without writing them`, async (t) => {
+    const root = await fixture(t); const directory = join(root, 'ds-prefill');
+    await fs.mkdir(directory);
+    const path = join(directory, 'datapackage.json');
+    const descriptor = { name: 'saved-package-name', title: 'Saved title', description: 'First line\nSecond <script> line' };
+    await fs.writeFile(path, JSON.stringify(descriptor));
+    const before = await snapshot(root);
+    const { url, logs } = await serve(t, mode, root);
+    const html = (await (await fetch(`${url}/datasets/ds-prefill?view=metadata`)).text()).replace(/<!--[\s\S]*?-->/g, '');
+    assert.match(html, /<input\b(?=[^>]*name="name")(?=[^>]*value="saved-package-name")[^>]*>/, logs());
+    assert.match(html, /<input\b(?=[^>]*name="title")(?=[^>]*value="Saved title")[^>]*>/);
+    assert.match(html, /<textarea\b[^>]*name="description"[^>]*>First line\nSecond &lt;script(?:>|&gt;) line<\/textarea>/);
+    assert.doesNotMatch(html, /Name is required\.|Title is required\.|Description is required\.|<script>/);
+    await fs.writeFile(path, JSON.stringify({ ...descriptor, title: 'Updated externally' }));
+    const refreshed = await (await fetch(`${url}/datasets/ds-prefill?view=metadata`)).text();
+    assert.match(refreshed, /<input\b(?=[^>]*name="title")(?=[^>]*value="Updated externally")[^>]*>/);
+    await fs.writeFile(path, JSON.stringify(descriptor));
+    assert.deepEqual(await snapshot(root), before);
+  });
+
+  test(`${mode}: shows required overview fields with inline empty errors and no write endpoint`, async (t) => {
+    const root = await fixture(t); const directory = join(root, 'ds-placeholder');
+    await fs.mkdir(directory);
+    await fs.writeFile(join(directory, 'datapackage.json'), '{\r\n "unknown":900719925474099312345\r\n}\r\n');
+    await fs.writeFile(join(directory, 'README.md'), '# Keep README');
+    await fs.writeFile(join(directory, 'input.csv'), 'untouched resource');
+    const before = await snapshot(root);
+    const { url, logs } = await serve(t, mode, root);
+    const response = await fetch(`${url}/datasets/ds-placeholder?view=metadata`);
+    assert.equal(response.status, 200, logs());
+    const html = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
+    assert.match(html, /aria-label="Metadata sections"/);
+    assert.ok(html.includes('href="#metadata-overview"'));
+    assert.ok(html.includes('id="metadata-overview"'));
+    for (const [key, label, tag] of [['name', 'Name', 'input'], ['title', 'Title', 'input'], ['description', 'Description', 'textarea']]) {
+      const control = [...html.matchAll(/<(?:input|textarea)\b[^>]*>/g)]
+        .find(([element]) => element.includes(`name="${key}"`));
+      assert.ok(control, `${label} control`);
+      assert.ok(control[0].startsWith(`<${tag}`));
+      const id = control[0].match(/\bid="([^"]+)"/)?.[1];
+      assert.ok(id);
+      assert.ok(html.includes(`for="${id}"`), `${label} has an associated label`);
+      assert.match(control[0], /\brequired(?:[=\s>])/);
+      assert.match(control[0], /aria-invalid="true"/);
+      const errorId = control[0].match(/aria-describedby="([^"]+)"/)?.[1];
+      assert.ok(errorId, `${label} describes its error`);
+      assert.ok(html.includes(`id="${errorId}"`));
+      assert.ok(html.includes(`${label} is required.`));
+    }
+    for (const label of ['Save changes', 'Reset form']) {
+      const button = [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].find(([value]) => value.includes(label));
+      assert.ok(button, label); assert.match(button[0], /\bdisabled(?:[=\s>])/);
+    }
+    assert.match(html, /Reload file/);
+    assert.equal([...html.matchAll(/<(?:input|textarea)\b/g)].length, 3);
+    assert.doesNotMatch(html, /name="submission"|Unsaved changes/);
+    for (const query of ['?view=metadata&/save', '?/save']) {
+      const post = await fetch(`${url}/datasets/ds-placeholder${query}`, {
+        method: 'POST', headers: { origin: url, accept: 'application/json', 'x-sveltekit-action': 'true' },
+        body: new URLSearchParams({ submission: '{"fields":[]}' }),
+      });
+      assert.equal(post.status, 405, 'Metadata saving is not implemented');
+    }
+    const raw = await fetch(`${url}/datasets/ds-placeholder?view=datapackage`);
+    assert.equal(raw.status, 200); assert.match(await raw.text(), /900719925474099312345/);
+    assert.deepEqual(await snapshot(root), before, 'GET and refused POST leave all fixture bytes untouched');
   });
 
   test(`${mode}: displays current metadata statuses beside every dataset link`, async (t) => {

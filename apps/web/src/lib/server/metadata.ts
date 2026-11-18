@@ -31,18 +31,28 @@ function contributorLabel(value: unknown): string {
   return value.roles === undefined ? value.title : `${value.title} (roles: ${displayValue(value.roles)})`;
 }
 
-export function inspectMetadata(text: string): { fields: MetadataField[]; issues: string[] } {
+export function inspectMetadata(text: string): {
+  fields: MetadataField[];
+  issues: string[];
+  overview: { name: string; title: string; description: string };
+} {
+  const emptyOverview = { name: '', title: '', description: '' };
   let data: unknown;
   try {
     data = JSON.parse(text);
   } catch (cause) {
     if (!(cause instanceof SyntaxError)) throw cause;
-    return { fields: [], issues: ['datapackage.json is not valid JSON.'] };
+    return { fields: [], issues: ['datapackage.json is not valid JSON.'], overview: emptyOverview };
   }
 
   const issues = validateMetadata(data, policy);
-  if (!isObject(data)) return { fields: [], issues };
+  if (!isObject(data)) return { fields: [], issues, overview: emptyOverview };
 
+  const overview = {
+    name: typeof data.name === 'string' ? data.name : '',
+    title: typeof data.title === 'string' ? data.title : '',
+    description: typeof data.description === 'string' ? data.description : '',
+  };
   const fields: MetadataField[] = [
     ['Name', 'name'], ['Title', 'title'], ['Description', 'description'],
     ['Version', 'version'], ['Created', 'created'], ['Licences', 'licenses'], ['Keywords', 'keywords'],
@@ -64,5 +74,5 @@ export function inspectMetadata(text: string): { fields: MetadataField[]; issues
       typeof keyword === 'string' && keyword.startsWith(prefix)
     ).map((keyword) => displayValue(keyword.slice(prefix.length))) });
   }
-  return { fields, issues };
+  return { fields, issues, overview };
 }

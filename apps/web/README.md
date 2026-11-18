@@ -1,14 +1,21 @@
 # Local Dataset Steward
 
-An early Svelte 5/SvelteKit app. It lists immediate, non-symlink `ds-*` directories
-under an explicitly supplied parent folder, including folders without metadata.
-Select a dataset to open its rendered `README.md`. Use **Metadata** to view
-supplied metadata, shared validation and escaped `datapackage.json` text, even
-if its JSON is malformed. Both viewers accept regular single-link UTF-8 files up
-to 5 MiB, not symlinks or hard links. It does not edit/migrate files, read
-resource files or buckets, count resources or generate READMEs. Metadata checks
-are not full repository validation or publication approval. The Python Steward
-remains the editing tool.
+An early read-only Svelte 5/SvelteKit app. It lists immediate, non-symlink `ds-*`
+directories under an explicitly supplied parent folder, including folders without
+metadata. Select a dataset to open its rendered README. Metadata contains a form
+Overview UI and read-only checks; datapackage.json separately shows escaped raw
+text, even when malformed. The form is being implemented one step at a time.
+
+Overview loads Name, Title and Description from the current datapackage.json.
+Name and Title share a row on wider screens; Description sits below. Only supplied
+strings fill the controls; missing/non-string values stay blank without coercion.
+Empty/whitespace-only inputs show inline required errors that clear when filled.
+Input edits remain local. Reload rereads the descriptor. Shared Checks still
+report the saved descriptor, not these local inputs.
+
+There is no save endpoint, writer, date/time default or dataset creation. Save and Reset are disabled placeholders. The app never writes dataset
+files, reads resources/buckets, counts resources, migrates metadata or generates
+READMEs. Checks do not authorize publication. The Python Steward remains unchanged.
 
 ## Dataset table
 
@@ -24,11 +31,11 @@ URLs and full-page navigation, so they also work without browser JavaScript.
 **Clear filters** resets the view; **Refresh** rechecks while keeping its filters.
 Missing values say **Not supplied**. Unreadable/unparseable summaries say
 **Unavailable**, not invented metadata. No raw descriptors or resource paths are
-returned in list data. Dataset links still open the read-only detail view.
+returned in list data. Dataset links open the README view.
 
 ## README view
 
-README is the default dataset view. It works independently of `datapackage.json`.
+README is the default dataset view. It works independently of datapackage.json.
 Missing, unreadable or unsafe README files show **README unavailable**, without
 hiding Metadata. Empty files are identified explicitly. Unknown datasets are 404.
 
@@ -44,18 +51,21 @@ loading occurs. Images show their alt text. Only credential-free HTTPS links are
 clickable, with noreferrer/noopener; relative/local links are text, not resource
 mappings. Markdown headings start below the dataset page heading. No files change.
 
-## Metadata summary
+## Metadata placeholder
 
-The summary shows supplied name, title, description, version, created, licences,
-keywords and contributors. Creators are only contributors whose `roles` contain
-`creator`. Task, project and stage come from their explicit keyword prefixes.
-Missing values say **Not supplied**; conflicting/unknown values remain visible
-with validation issues. Nothing is inferred from names, folders, Git or the OS.
-Legacy top-level creator/task/project/stage fields are not silently mapped to the
-new contract; the original descriptor remains visible below the summary.
-Malformed JSON shows its raw text and a generic parse issue. Other malformed
-values stay visible as literal text. Metadata and diagnostics are never HTML or
-automatically followed links. No dataset-local configuration weakens the policy.
+Implement the form in `src/lib/components/metadata-form.svelte`. It retains:
+
+- Section navigation and Overview's required Name/Title text inputs and Description
+  textarea. Other section bodies are not implemented.
+- Read-only shared metadata checks in the Checks section.
+- The sticky footer with disabled **Save changes** and **Reset form**, plus a
+  working **Reload file** link.
+
+The former editor, repeatable-field/date/time helpers, client draft logic, server
+save action, writer and editor-only jsonc-parser dependency have been removed.
+POST requests cannot save metadata. README and the raw datapackage.json view remain
+read-only. Diagnostics are escaped text, never automatically followed links.
+No dataset-local configuration weakens the shared policy.
 
 ## Run
 
@@ -68,13 +78,9 @@ DATASET_ROOT="/absolute/path/to/datasets" pnpm --filter @lazydata/steward dev
 
 Open the loopback URL printed in the terminal. Supply the **parent**, not an
 individual dataset. Refresh to discover changes; select a name to open its README,
-then select Metadata for its descriptor and metadata checks. Use the **Datasets** breadcrumb in the header to return to the
-collection. The list shows metadata checks passed,
-metadata issues (with count), or metadata unavailable beside each dataset. Missing
-or unreadable descriptors do not hide other datasets. Refresh rechecks statuses.
-Only metadata is checked, not resource files or buckets. Pages use server-rendered
-semantic HTML with shadcn-svelte styling and hydrated sidebar controls. Dataset
-filesystem access stays server-only; there is no client-side metadata editing.
+then Metadata for the placeholder/checks or datapackage.json for raw text. Use the
+**Datasets** breadcrumb to return to the collection. Missing/unreadable metadata
+does not hide other datasets. Refresh reruns read-only checks.
 
 For a built local server:
 
@@ -83,14 +89,20 @@ pnpm --filter @lazydata/steward build
 DATASET_ROOT="/absolute/path/to/datasets" pnpm --filter @lazydata/steward start
 ```
 
-The start command fixes the host to `127.0.0.1`, rejects `SOCKET_PATH` and uses
-port 3000 unless `PORT` is supplied. Development also defaults to loopback.
-Pass `DATASET_ROOT` through the process environment; no dataset path is built
-into the app. Missing or unreadable configuration returns an error, not an empty
-success. Detailed filesystem failures are logged only to the local terminal.
-Do not expose or reverse-proxy this local tool onto a network. These path checks
-are not an OS sandbox against a process concurrently replacing filesystem
-ancestors. Future editing needs separate write/conflict safeguards.
+The start wrapper fixes the host to `127.0.0.1`, rejects `SOCKET_PATH` and uses
+port 3000 unless `PORT` is supplied. It pins the request protocol to local HTTP
+and ignores client-supplied proxy protocol/host/port headers. Use the wrapper
+rather than running build/index.js directly. Development also defaults to loopback.
+
+Pass DATASET_ROOT through the process environment; no dataset path is built into
+the app. Missing/unreadable configuration returns an error, not an empty success.
+Detailed filesystem failures are logged only to the local terminal. Do not expose
+or reverse-proxy this tool onto a network.
+
+Descriptor/README reads are server-only, bounded to 5 MiB and require regular,
+single-link, canonical UTF-8 files, not symlinks/hard links. Identity checks detect
+ordinary read races, not malicious concurrent ancestor swaps. This is not an OS
+sandbox. The app has no permission to repair or replace dataset files.
 
 ## Check
 
@@ -100,14 +112,14 @@ pnpm --filter @lazydata/steward test
 ```
 
 `check` runs Svelte/accessibility diagnostics and strict app/test typechecking.
-`test` builds the app, then runs native Node TypeScript filesystem/HTTP tests
-against temporary fixtures in dev and built modes. There is no separate linter.
-The app uses TypeScript 6 for framework compatibility; the validator stays on 7.
-App `dev`, `check` and `build` explicitly compile the workspace validator first,
-using its public package exports and matched policy. No install hooks are needed.
-The validator is linked internally. The UI uses the approved shadcn-svelte
-components, bits-ui/date helpers and existing Tailwind/Lucide setup. Server-only
-markdown-it 15 includes its own types. Lifecycle
-scripts remain disabled during installation. New sidebar defaults use CSS classes
-instead of inline width styles, preserving the production CSP without unsafe
-inline styles/scripts. Development CSS injection uses SvelteKit's own CSP handling.
+`test` builds the app, then runs native Node TypeScript filesystem/HTTP tests using
+temporary fixtures in dev and built modes. Tests cover the disabled footer,
+section targets, refused POSTs and unchanged dataset bytes. No separate linter.
+App TypeScript remains 6; validator TypeScript remains 7. App dev/check/build
+explicitly compile the workspace validator using its public API and matched policy.
+
+The UI uses the approved shadcn-svelte components and existing Tailwind/Lucide
+setup. Server-only markdown-it 15 includes its types. No install hooks are needed;
+lifecycle scripts remain disabled. Sidebar defaults use CSS classes instead of
+inline width styles, preserving production CSP without unsafe inline styles/scripts.
+Development CSS injection uses SvelteKit's own CSP handling.

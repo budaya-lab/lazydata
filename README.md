@@ -1,10 +1,12 @@
 # Lazydata
 
 Shared, read-only dataset validation and an early local Dataset Steward rebuild.
-The [SvelteKit app](apps/web/README.md) lists dataset folders and displays their
-Data Package descriptors as read-only text, with supplied metadata and shared
-metadata-check results. The dataset list also shows each metadata-check status.
-Editing and dataset creation are not implemented.
+The [SvelteKit app](apps/web/README.md) lists datasets with shared metadata-check
+statuses and opens README first. Metadata has local-only Name, Title and
+Description inputs prefilled from the descriptor, required-field errors, section
+navigation, disabled Save/Reset and working Reload. Name/Title share a responsive
+row; Description sits below. Read-only checks and the separate raw datapackage.json
+view remain. Saving and dataset creation are not implemented.
 
 ## Use the validator
 

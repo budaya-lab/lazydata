@@ -9,15 +9,15 @@ Local tools ─────────> @lazydata/validator/repository
 
 lazydata-validate ────> repository adapter
 
-Steward server load ─> portable metadata checks + matched policy
+Steward reads ──────> portable metadata checks + matched policy
 Future full server validation ─> repository adapter (never shipped to the browser)
 ```
 
 The local Steward app consumes compiled public exports from the existing
 workspace validator package. Its server-only adapter parses descriptor text,
 shows supplied values and returns portable metadata-check issues. It does not
-read resources/buckets or infer/migrate metadata. Raw text remains visible on
-invalid JSON. App dev/check/build explicitly compile the validator first; the
+read resources/buckets or infer/migrate metadata. Raw text remains available in
+the separate datapackage.json view, including on invalid JSON. App dev/check/build explicitly compile the validator first; the
 shared package remains framework-free. External consumers still use the pinned
 compiled release archives described below.
 
@@ -28,14 +28,29 @@ raw descriptors remain detail-only. Search/status filters are bounded, validated
 GET parameters, never roots or filesystem paths. Workspace counts do not change
 with filtering. Normal GET navigation and refresh rerun the read-only checks.
 
-Dataset detail defaults to root README.md; `?view=metadata` retains descriptor
-inspection and shared checks. The bounded text reader admits only discovered
+Dataset detail defaults to root README.md. `?view=metadata` contains a form
+placeholder, section navigation, disabled Save/Reset, Reload and read-only checks. `?view=datapackage` is read-only raw text. The bounded text reader admits only discovered
 datasets and these two server-selected filenames. README availability does not
 require a descriptor. Server-only Markdown parsing produces an allowlisted tree,
 rendered as escaped Svelte elements/text, never injected HTML. Dataset images and
 local link mappings are disabled. Static reviewed README fingerprints support
 exact template warnings without runtime access to a sibling template checkout.
 This UI warning is not shared validation policy or inferred dataset provenance.
+
+The owner scrapped the editing implementation and will implement the form.
+The next approved increment in `metadata-form.svelte` adds only Name, Title and
+Description with live blank/whitespace-required errors. The server returns only
+these three supplied string values for the form, alongside shared issues. Missing/
+non-string values leave blank controls; no coercion or inferred metadata. Inputs
+are local overrides, reset when loaded overview data changes. Name/Title share a
+responsive row, with Description below. There is no save path. Read-only Checks
+remain descriptor checks. Navigation/footer remain; Save/Reset stay disabled. There is no editor model, submission parser, patcher, writer, timezone
+handling or save action. POST is refused with 405; the disabled footer is not a
+write boundary. No dataset files are written. The editor-only jsonc-parser
+dependency and its lock records were removed; other versions remain unchanged.
+
+The Node startup wrapper pins loopback and supplies a trusted HTTP protocol header
+before the adapter handles requests; client proxy headers never define the origin.
 
 The validator owns the common rules and matched default policy. It accepts
 untrusted input and returns error strings. Invalid policy and invalid bucket
