@@ -92,6 +92,13 @@ never triggers counting; browser mount, path blur and recount do. Forms have at
 most 200 rows, 1,000 suggestions; listing is capped at 10,000 root entries.
 No shared validator code or policy is changed.
 
+Sources uses local add/remove rows for Title and one `path` field displayed as
+“URL or Path”. Both are required in the form. Local syntax accepts a fully
+qualified HTTP(S) URL or safe relative POSIX path; the app does not fetch URLs or
+read source paths. Source prefill avoids coercing malformed values. This local
+form requirement does not change the shared validator, which continues to check
+saved sources under its existing policy. No source is saved or migrated.
+
 There is no save path. Read-only Checks remain saved-descriptor checks.
 Navigation/footer remain; Save/Reset stay disabled. There is no former editor
 model, submission parser, patcher, writer or save action. POST is refused with 405; the disabled footer is not a

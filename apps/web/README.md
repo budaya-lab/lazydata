@@ -3,7 +3,7 @@
 An early read-only Svelte 5/SvelteKit app. It lists immediate, non-symlink `ds-*`
 directories under an explicitly supplied parent folder, including folders without
 metadata. Select a dataset to open its rendered README. Metadata contains a form
-Overview/Keywords/Resources UI and read-only checks; datapackage.json separately shows escaped raw
+Overview/Keywords/Resources/Sources UI and read-only checks; datapackage.json separately shows escaped raw
 text, even when malformed. The form is being implemented one step at a time.
 Required labels use `*`, explained above the fields. Optional labels are unmarked;
 native/ARIA required states and validation are unchanged.
@@ -73,6 +73,13 @@ results. The UI caps 200 rows and 1,000 suggestions. Limits/errors are visible.
 It refuses traversal, URLs, hidden path segments, links and special files. Counts
 return only totals/status, never source content. The GET endpoint stays local
 and no-store; no POST/write endpoint was added.
+
+Sources has local add/remove rows with required Title and URL or Path fields.
+The locator must be a fully qualified HTTP(S) address or a safe relative POSIX
+path. The form validates this syntax locally. It does not fetch URLs, read paths,
+or alter saved-descriptor validation policy. Existing source values are retained
+only as local prefill; unsupported types stay blank and invalid rather than being
+coerced. Adding/removing/editing rows changes no files.
 
 There is no save endpoint, writer, automatic Created date or dataset creation.
 Save and Reset are disabled placeholders. The app never writes dataset files,
