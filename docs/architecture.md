@@ -29,7 +29,7 @@ GET parameters, never roots or filesystem paths. Workspace counts do not change
 with filtering. Normal GET navigation and refresh rerun the read-only checks.
 
 Dataset detail defaults to root README.md. `?view=metadata` contains a form
-placeholder, section navigation, disabled Save/Reset, Reload and read-only checks. `?view=datapackage` is read-only raw text. The bounded text reader admits only discovered
+with local-only Overview/Keywords controls, section navigation, disabled Save/Reset, Reload and read-only checks. `?view=datapackage` is read-only raw text. The bounded text reader admits only discovered
 datasets and these two server-selected filenames. README availability does not
 require a descriptor. Server-only Markdown parsing produces an allowlisted tree,
 rendered as escaped Svelte elements/text, never injected HTML. Dataset images and
@@ -37,14 +37,22 @@ local link mappings are disabled. Static reviewed README fingerprints support
 exact template warnings without runtime access to a sibling template checkout.
 This UI warning is not shared validation policy or inferred dataset provenance.
 
-The owner scrapped the editing implementation and will implement the form.
-The next approved increment in `metadata-form.svelte` adds only Name, Title and
-Description with live blank/whitespace-required errors. The server returns only
-these three supplied string values for the form, alongside shared issues. Missing/
-non-string values leave blank controls; no coercion or inferred metadata. Inputs
-are local overrides, reset when loaded overview data changes. Name/Title share a
-responsive row, with Description below. There is no save path. Read-only Checks
-remain descriptor checks. Navigation/footer remain; Save/Reset stay disabled. There is no editor model, submission parser, patcher, writer, timezone
+The owner scrapped the former editor and is rebuilding the form incrementally.
+Overview has Name, Title and Description with live blank/whitespace-required
+errors. Keywords has required Tasks/Projects tags, a required Stage dropdown and
+optional Extra keywords tags. The server extracts exact task/project/stage
+prefixes from supplied keyword strings, without coercion or inference. Supplied
+tag strings/spaces/duplicates are retained; missing/unknown/multiple stages leave
+an empty selection. Stage options and labels come from the same compiled package
+policy used by shared checks, not dataset-local configuration. The shared
+exactly-one task/project policy is unchanged. Only these form values, policy
+options and shared issues cross the detail-load boundary.
+
+Inputs are local overrides, reset when loaded overview data changes. Tag entry
+commits on Enter/comma/blur, retains internal spaces and avoids new exact
+duplicates. Removing a tag returns focus to its input. Name/Title share a responsive
+row with Description below; Keywords rows are Tasks/Projects then Stage/Extra
+keywords. There is no save path. Read-only Checks remain saved-descriptor checks. Navigation/footer remain; Save/Reset stay disabled. There is no editor model, submission parser, patcher, writer, timezone
 handling or save action. POST is refused with 405; the disabled footer is not a
 write boundary. No dataset files are written. The editor-only jsonc-parser
 dependency and its lock records were removed; other versions remain unchanged.

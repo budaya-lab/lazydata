@@ -3,7 +3,7 @@
 An early read-only Svelte 5/SvelteKit app. It lists immediate, non-symlink `ds-*`
 directories under an explicitly supplied parent folder, including folders without
 metadata. Select a dataset to open its rendered README. Metadata contains a form
-Overview UI and read-only checks; datapackage.json separately shows escaped raw
+Overview/Keywords UI and read-only checks; datapackage.json separately shows escaped raw
 text, even when malformed. The form is being implemented one step at a time.
 
 Overview loads Name, Title and Description from the current datapackage.json.
@@ -12,6 +12,18 @@ strings fill the controls; missing/non-string values stay blank without coercion
 Empty/whitespace-only inputs show inline required errors that clear when filled.
 Input edits remain local. Reload rereads the descriptor. Shared Checks still
 report the saved descriptor, not these local inputs.
+
+Keywords prefills Tasks from `task:`, Projects from `project:`, Stage from `stage:`
+and Extra keywords from the remaining supplied strings. Tasks/Projects share one
+responsive row; Stage/Extra keywords share the next. Tasks and Projects require a
+nonblank tag; Stage requires a selection. Extra keywords are optional. Enter or
+comma adds tags; leaving the input commits pending text. Spaces stay inside a tag,
+including project names. Remove a tag with its labelled cross button. New tags
+trim outer whitespace and avoid exact duplicates; supplied tags are not rewritten.
+Stage options/labels come from the compiled validator's matched policy, never
+from dataset-local configuration. Missing/unknown/multiple stages leave an empty
+selection; the shared saved-metadata issues remain visible. Shared policy still
+requires exactly one task and one project; local tag controls do not change it.
 
 There is no save endpoint, writer, date/time default or dataset creation. Save and Reset are disabled placeholders. The app never writes dataset
 files, reads resources/buckets, counts resources, migrates metadata or generates
@@ -51,12 +63,12 @@ loading occurs. Images show their alt text. Only credential-free HTTPS links are
 clickable, with noreferrer/noopener; relative/local links are text, not resource
 mappings. Markdown headings start below the dataset page heading. No files change.
 
-## Metadata placeholder
+## Metadata form (local only)
 
 Implement the form in `src/lib/components/metadata-form.svelte`. It retains:
 
 - Section navigation and Overview's required Name/Title text inputs and Description
-  textarea. Other section bodies are not implemented.
+  textarea, plus the Keywords controls above. Other section bodies are not implemented.
 - Read-only shared metadata checks in the Checks section.
 - The sticky footer with disabled **Save changes** and **Reset form**, plus a
   working **Reload file** link.
@@ -78,7 +90,7 @@ DATASET_ROOT="/absolute/path/to/datasets" pnpm --filter @lazydata/steward dev
 
 Open the loopback URL printed in the terminal. Supply the **parent**, not an
 individual dataset. Refresh to discover changes; select a name to open its README,
-then Metadata for the placeholder/checks or datapackage.json for raw text. Use the
+then Metadata for the local-only form/checks or datapackage.json for raw text. Use the
 **Datasets** breadcrumb to return to the collection. Missing/unreadable metadata
 does not hide other datasets. Refresh reruns read-only checks.
 
