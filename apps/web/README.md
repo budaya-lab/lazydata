@@ -9,11 +9,19 @@ Required labels use `*`, explained above the fields. Optional labels are unmarke
 native/ARIA required states and validation are unchanged.
 
 Overview loads Name, Title and Description from the current datapackage.json.
-Name and Title share a row on wider screens; Description sits below. Only supplied
+Name and Title share a row on wider screens; Description sits below. Name uses
+HTML control name `dataset-id` to avoid the owner-observed Zen Undo problem with
+`name="name"`; its descriptor property remains `name`. Only supplied
 strings fill the controls; missing/non-string values stay blank without coercion.
 Empty/whitespace-only inputs show inline required errors that clear when filled.
-Input edits remain local. Reload rereads the descriptor. Shared Checks still
-report the saved descriptor, not these local inputs.
+Input edits remain local. Reload rereads the descriptor. Checks starts with the
+saved descriptor's results, then rechecks local edits after 500 ms without another
+edit. The navigation label is “Issues (#)”. The status shows “Checking…” while
+pending and discards obsolete timers on newer
+edits or navigation. No validation request, file read or auto-save is performed.
+Pending tag text is included without turning it into a chip. Source/Resource rows
+keep inline errors, with their full draft results in Checks rather than repeated
+lists below each section. Table statuses still describe saved files.
 
 Created then Version share an equal-width row below Description. Neither has a
 format note or timestamp preview. Both fields are optional and start blank when absent; no version
@@ -46,8 +54,8 @@ requires exactly one task and one project; local tag controls do not change it.
 
 Resources contains local add/remove rows for Name, Path, Title, Format and a
 read-only Count. Required markers follow the compiled shared policy: currently
-Name, Title and Path. Draft resource checks reuse that validator; saved-descriptor
-Shared Checks are separate. Supplied names/titles are retained. Missing Name
+Name, Title and Path. Draft resource checks reuse that validator in Checks;
+resource counting is separate. Supplied names/titles are retained. Missing Name
 uses the basename without its final extension; missing Format uses the lowercase
 extension. Path edits update defaults without replacing manual overrides. A
 selected directory keeps its basename and has blank, disabled Format.
@@ -94,6 +102,19 @@ No name or role is inferred. Supplied strings, duplicates and order are retained
 malformed values show errors and a raw-descriptor warning instead of being coerced.
 Adding a row focuses its Name input; removing it focuses a remaining Name or Add.
 The form supports up to 200 contributors. Shared saved-metadata policy is unchanged.
+
+Draft validation overlays edited fields and displayed resource defaults on the
+loaded descriptor. It retains unexposed properties, unsupported values and
+path-only license entries.
+Malformed descriptors and edited over-limit/unsupported collections cannot become
+false successes. Resource counts already in the descriptor remain metadata;
+validation does not recount or use asynchronous count results. This overlay is
+only for checks, not a save serializer or a file-preservation contract.
+
+The agreed future Save behavior is to allow incomplete drafts while keeping their
+issues visible. Metadata-validation issues alone will not block saving; unsafe
+requests, unsupported write operations and stale-file conflicts are separate
+safety failures. This behavior is not implemented yet.
 
 There is no save endpoint, writer, automatic Created date or dataset creation.
 Save and Reset are disabled placeholders. The app never writes dataset files,

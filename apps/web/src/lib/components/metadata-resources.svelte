@@ -1,5 +1,6 @@
 <script lang="ts">
     import { tick } from "svelte";
+    import type { DraftRow } from "$lib/draft-checks.ts";
     import MetadataResourceRow from "$lib/components/metadata-resource-row.svelte";
     import { Button } from "$lib/components/ui/button/index.js";
     import * as Field from "$lib/components/ui/field/index.js";
@@ -8,19 +9,16 @@
         MAX_RESOURCE_ROWS,
         type ResourceFields,
         type ResourceModel,
-        resourceDraftIssues,
     } from "$lib/resource-fields.ts";
 
-    let { model, countUrl }: { model: ResourceModel; countUrl: string } =
-        $props();
-    type Row = { id: number; fields: ResourceFields; count?: number };
+    let { model, countUrl, onedit }: {
+        model: ResourceModel;
+        countUrl: string;
+        onedit: (rows: DraftRow<ResourceFields>[]) => void;
+    } = $props();
+    type Row = { id: number; fields: ResourceFields };
     let rows = $derived<Row[]>(
         model.rows.map((fields, id) => ({ id, fields })),
-    );
-    let issues = $derived(
-        resourceDraftIssues(
-            rows.map((row) => ({ ...row.fields, count: row.count })),
-        ),
     );
     let nextId = MAX_RESOURCE_ROWS;
     let counter = $derived(createResourceCounter(countUrl));
@@ -40,6 +38,7 @@
                 fields: { name: "", path: "", title: "", format: "" },
             },
         ];
+        onedit(rows);
         announcement = "Resource added.";
         await tick();
         container
@@ -51,6 +50,7 @@
     async function remove(id: number) {
         const index = rows.findIndex((row) => row.id === id);
         rows = rows.filter((row) => row.id !== id);
+        onedit(rows);
         announcement = "Resource removed.";
         await tick();
         const input = container
@@ -85,23 +85,13 @@
                 options={model.options}
                 required={model.required}
                 {counter}
-                onchange={(fields) => update(row.id, { fields })}
-                oncount={(count) => update(row.id, { count })}
+                onchange={(fields) => { update(row.id, { fields }); onedit(rows); }}
                 onremove={() => remove(row.id)}
             />
         {:else}<p class="text-sm text-muted-foreground">
                 No resources yet.
             </p>{/each}
     </Field.Group>
-    {#if issues.length}
-        <Field.Error class="text-xs"
-            ><ul class="list-disc pl-4">
-                {#each issues as issue, index (`${index}:${issue}`)}<li>
-                        {issue}
-                    </li>{/each}
-            </ul></Field.Error
-        >
-    {/if}
     <div>
         <Button
             type="button"

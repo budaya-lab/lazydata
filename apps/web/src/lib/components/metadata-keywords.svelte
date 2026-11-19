@@ -1,5 +1,6 @@
 <script lang="ts">
     import MetadataTags from "$lib/components/metadata-tags.svelte";
+    import type { KeywordEdits } from "$lib/draft-checks.ts";
     import * as Field from "$lib/components/ui/field/index.js";
     import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 
@@ -9,12 +10,14 @@
         stage,
         extraKeywords,
         stageOptions,
+        onedit,
     }: {
         tasks: string[];
         projects: string[];
         stage: string;
         extraKeywords: string[];
         stageOptions: { value: string; label: string }[];
+        onedit: (values: KeywordEdits) => void;
     } = $props();
     let invalidStage = $derived(
         !stageOptions.some(({ value }) => value === stage),
@@ -31,12 +34,14 @@
             id="metadata-tasks"
             label="Tasks"
             bind:value={tasks}
+            onedit={(tasks) => onedit({ tasks })}
             required
         />
         <MetadataTags
             id="metadata-projects"
             label="Projects"
             bind:value={projects}
+            onedit={(projects) => onedit({ projects })}
             required
         />
         <Field.Field data-invalid={invalidStage}>
@@ -46,6 +51,7 @@
                 name="stage"
                 class="w-full"
                 bind:value={stage}
+                onchange={(event) => onedit({ stage: event.currentTarget.value })}
                 required
                 aria-invalid={invalidStage}
                 aria-describedby={invalidStage
@@ -71,6 +77,7 @@
             id="metadata-extra-keywords"
             label="Extra keywords"
             bind:value={extraKeywords}
+            onedit={(extraKeywords) => onedit({ extraKeywords })}
         />
     </Field.Group>
 </Field.Set>

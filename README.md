@@ -17,7 +17,8 @@ must be a fully qualified HTTP(S) address or a safe relative POSIX path; URLs ar
 not fetched. Licenses uses a local name-only tag field with common SPDX
 suggestions and custom identifiers allowed. Contributors adds local Name and
 Roles rows, with role tags, suggestions and custom roles. Read-only checks and the
-separate raw datapackage.json view remain. Saving and dataset creation are not implemented.
+separate raw datapackage.json view remain. Checks revalidate unsaved edits after a
+500 ms pause, without file reads or auto-save. Saving and dataset creation are not implemented.
 
 ## Use the validator
 

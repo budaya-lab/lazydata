@@ -296,8 +296,16 @@ for (const mode of ['dev', 'built'] as const) {
         }
       }
       assert.match(pages[name], /Metadata validation/);
+      const issuesLink = pages[name].match(/<a\b(?=[^>]*href="#metadata-validation")[^>]*>[\s\S]*?<\/a>/)?.[0];
+      assert.ok(issuesLink);
+      assert.match(issuesLink, /Issues\s+\(\d+\)/);
+      assert.doesNotMatch(issuesLink, /Checks/);
+      assert.match(pages[name], /Checks update 500 ms after edits\. Changes are not saved\./);
+      assert.match(pages[name], /aria-label="Metadata validation" aria-busy="false"/);
+      const rowSections = pages[name].slice(pages[name].indexOf('id="root/resources"'), pages[name].indexOf('id="metadata-validation"'));
+      assert.doesNotMatch(rowSections, /<ul\b/, 'row sections have inline errors, not duplicate error lists');
       assert.match(pages[name], /Shared\s+checks\s+do\s+not\s+read\s+resources\s+or\s+buckets/);
-      const overviewAndKeywords = [...pages[name].matchAll(/\bname="(?:name|title|description|version|createdDate|created|metadata-(?:tasks|projects|extra-keywords))"/g)];
+      const overviewAndKeywords = [...pages[name].matchAll(/\bname="(?:dataset-id|title|description|version|createdDate|created|metadata-(?:tasks|projects|extra-keywords))"/g)];
       assert.equal(overviewAndKeywords.length, 9);
       assert.doesNotMatch(pages[name], /name="submission"/);
       assert.doesNotMatch(pages[name], /<pre\b|<dl\b|Dataset is valid/);
@@ -346,7 +354,8 @@ for (const mode of ['dev', 'built'] as const) {
       assert.ok(control.includes(`value="${value}"`));
       assert.match(control, /\srequired(?:[\s=>])/);
     }
-    assert.doesNotMatch(pages.legacy, /Legacy person|Legacy task/);
+    const legacyForm = pages.legacy.slice(pages.legacy.indexOf('aria-label="Metadata form"'), pages.legacy.indexOf('id="metadata-validation"'));
+    assert.doesNotMatch(legacyForm, /Legacy person|Legacy task/);
     assert.match(pages.legacy, /title is required/);
     assert.match(pages.legacy, /keywords must contain exactly one nonempty task: keyword/);
     assert.match(pages.malformed, /datapackage.json is not valid JSON/);
@@ -559,7 +568,7 @@ for (const mode of ['dev', 'built'] as const) {
     const before = await snapshot(root);
     const { url, logs } = await serve(t, mode, root);
     const html = (await (await fetch(`${url}/datasets/ds-prefill?view=metadata`)).text()).replace(/<!--[\s\S]*?-->/g, '');
-    assert.match(html, /<input\b(?=[^>]*name="name")(?=[^>]*value="saved-package-name")[^>]*>/, logs());
+    assert.match(html, /<input\b(?=[^>]*id="metadata-name")(?=[^>]*name="dataset-id")(?=[^>]*value="saved-package-name")[^>]*>/, logs());
     assert.match(html, /<input\b(?=[^>]*name="title")(?=[^>]*value="Saved title")[^>]*>/);
     assert.match(html, /<textarea\b[^>]*name="description"[^>]*>First line\nSecond &lt;script(?:>|&gt;) line<\/textarea>/);
     assert.doesNotMatch(html, /Name is required\.|Title is required\.|Description is required\.|<script>/);
@@ -584,7 +593,7 @@ for (const mode of ['dev', 'built'] as const) {
     assert.match(html, /aria-label="Metadata sections"/);
     assert.ok(html.includes('href="#metadata-overview"'));
     assert.ok(html.includes('id="metadata-overview"'));
-    for (const [key, label, tag] of [['name', 'Name', 'input'], ['title', 'Title', 'input'], ['description', 'Description', 'textarea']]) {
+    for (const [key, label, tag] of [['dataset-id', 'Name', 'input'], ['title', 'Title', 'input'], ['description', 'Description', 'textarea']]) {
       const control = [...html.matchAll(/<(?:input|textarea)\b[^>]*>/g)]
         .find(([element]) => element.includes(`name="${key}"`));
       assert.ok(control, `${label} control`);

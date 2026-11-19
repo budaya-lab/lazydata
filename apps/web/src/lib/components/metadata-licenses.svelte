@@ -7,7 +7,7 @@
         licenseDraftIssues,
     } from "$lib/license-fields.ts";
 
-    let { model }: { model: LicenseModel } = $props();
+    let { model, onedit }: { model: LicenseModel; onedit: (names: string[]) => void } = $props();
     let names = $derived([...model.names]);
     let issues = $derived(licenseDraftIssues(names, model.required));
 </script>
@@ -26,6 +26,7 @@
             id="metadata-licenses"
             label="Names"
             bind:value={names}
+            {onedit}
             required={model.required}
             suggestions={LICENSE_PRESETS}
             helpId="metadata-licenses-help"

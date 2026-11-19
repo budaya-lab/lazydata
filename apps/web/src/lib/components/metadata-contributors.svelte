@@ -1,6 +1,7 @@
 <script lang="ts">
     import XIcon from "@lucide/svelte/icons/x";
     import { tick } from "svelte";
+    import type { DraftRow } from "$lib/draft-checks.ts";
     import MetadataTags from "$lib/components/metadata-tags.svelte";
     import { Button } from "$lib/components/ui/button/index.js";
     import * as Field from "$lib/components/ui/field/index.js";
@@ -13,7 +14,10 @@
         contributorFieldIssues,
     } from "$lib/contributor-fields.ts";
 
-    let { model }: { model: ContributorModel } = $props();
+    let { model, onedit }: {
+        model: ContributorModel;
+        onedit: (rows: DraftRow<ContributorFields>[]) => void;
+    } = $props();
     type Row = { id: number; fields: ContributorFields };
     let rows = $derived<Row[]>(model.rows.map((fields, id) => ({ id, fields })));
     let nextId = MAX_CONTRIBUTOR_ROWS;
@@ -26,10 +30,12 @@
         rows = rows.map((row) =>
             row.id === id ? { ...row, fields: { ...row.fields, ...fields } } : row,
         );
+        onedit(rows);
     }
 
     async function add() {
         rows = [...rows, { id: nextId++, fields: { title: "", roles: [] } }];
+        onedit(rows);
         announcement = "Contributor added.";
         await tick();
         container
@@ -41,6 +47,7 @@
     async function remove(id: number) {
         const index = rows.findIndex((row) => row.id === id);
         rows = rows.filter((row) => row.id !== id);
+        onedit(rows);
         announcement = "Contributor removed.";
         await tick();
         const input = container
@@ -103,6 +110,8 @@
                             () => row.fields.roles ?? [],
                             (roles) => update(row.id, { roles })
                         }
+                        onedit={(roles) => onedit(rows.map((current) => current.id === row.id
+                            ? { ...current, fields: { ...current.fields, roles } } : current))}
                         suggestions={CONTRIBUTOR_ROLE_PRESETS}
                         helpId="metadata-contributors-help"
                         validationMessage={issues.roles}

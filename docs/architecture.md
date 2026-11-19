@@ -52,7 +52,9 @@ tag strings/spaces/duplicates are retained; missing/unknown/multiple stages leav
 an empty selection. Stage options and labels come from the same compiled package
 policy used by shared checks, not dataset-local configuration. The shared
 exactly-one task/project policy is unchanged. Only these form values, policy
-options and shared issues cross the detail-load boundary.
+options, initial shared issues and descriptor text cross the detail-load boundary.
+Descriptor text stays detail-only and uses SvelteKit's escaped data serialization;
+it is not copied into dashboard results or static assets.
 
 Inputs are local overrides, reset when loaded overview data changes. Tag entry
 commits on Enter/comma/blur, retains internal spaces and avoids new exact
@@ -69,8 +71,9 @@ validation policy is unchanged, including its existing date-time checks; SemVer
 format checking is local UI validation only.
 
 Resources uses the matched resource required-fields policy (currently Name,
-Title and Path). Its live draft issues reuse the portable validator, subtracting
-package-only baseline issues; no resource validation rules are forked. Pure
+Title and Path). Full draft issues reuse the portable validator in Checks;
+no resource validation rules are forked. Inline errors stay beside fields, but
+the repeated section-level error list is removed. Pure
 helpers extract supplied strings, derive absent filename/format defaults and
 preserve manual overrides. No supplied count is trusted. Array paths/malformed
 types are not coerced into text. Rows add/remove locally with stable IDs.
@@ -116,7 +119,24 @@ retain order, duplicates and spaces; unsupported name/role types use null sentin
 and show warnings instead of coercion. The form caps rows at 200. Shared policy
 and saved-descriptor checks do not change.
 
-There is no save path. Read-only Checks remain saved-descriptor checks.
+There is no save path. The navigation label is Issues (#). Initial validation
+results come from the saved descriptor. Owner chose future Save behavior that
+allows incomplete drafts while retaining visible issues; this does not waive
+request/filesystem safety checks or stale-file conflict detection.
+After edits, a browser-only 500 ms debounce checks the current validation snapshot.
+Every section reports changes, including pending tag text. Pending checks hide old
+results and show Checking; revision tokens/cancellation prevent obsolete timers
+from publishing, and teardown cancels work on navigation. A synchronous flush is
+tested for future explicit Save integration, but Save remains disabled.
+
+The validation-only overlay includes displayed resource defaults and retains
+unknown row properties, original row IDs,
+unsupported saved values and path-only license entries. It adds existing local
+form rules (SemVer, contributor names and source locators) without changing shared
+policy. Malformed JSON/root shapes and unsupported/over-limit edited arrays stay
+errors, not inferred replacements. Saved counts are retained for metadata checks;
+the overlay does not trigger counting or consume asynchronous count results.
+This is not a serializer, a writer or an approval of future save semantics.
 Navigation/footer remain; Save/Reset stay disabled. There is no former editor
 model, submission parser, patcher, writer or save action. POST is refused with 405; the disabled footer is not a
 write boundary. No dataset files are written. The editor-only jsonc-parser

@@ -14,6 +14,7 @@
         suggestions = [],
         helpId = "metadata-keywords-help",
         validationMessage,
+        onedit,
     }: {
         id: string;
         label: string;
@@ -22,6 +23,7 @@
         suggestions?: readonly string[];
         helpId?: string;
         validationMessage?: string;
+        onedit: (values: string[]) => void;
     } = $props();
     let draft = $state("");
     let input = $state<HTMLInputElement | null>(null);
@@ -31,11 +33,13 @@
     );
 
     function commit() {
+        if (!draft) return;
         const next = addTags(value, draft);
         if (next.length > value.length)
             announcement = `${label}: ${next.length} tags.`;
         value = next;
         draft = "";
+        onedit(next);
     }
 
     function keydown(event: KeyboardEvent) {
@@ -50,6 +54,7 @@
 
     function remove(index: number) {
         value = value.filter((_, position) => position !== index);
+        onedit(value);
         announcement = `${label}: tag removed. ${value.length} remaining.`;
         input?.focus();
     }
@@ -89,6 +94,7 @@
             aria-describedby={`${helpId}${invalid ? ` ${id}-error` : ""}`}
             class="min-w-20 flex-1 form-ui:h-6 form-ui:border-0 form-ui:px-0 form-ui:focus-visible:ring-0 form-ui:aria-invalid:ring-0"
             onkeydown={keydown}
+            oninput={(event) => onedit(addTags(value, event.currentTarget.value))}
             onblur={commit}
         />
     </div>

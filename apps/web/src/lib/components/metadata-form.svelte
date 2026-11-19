@@ -1,18 +1,21 @@
 <script lang="ts">
+    import { onDestroy } from "svelte";
+    import MetadataContributors from "$lib/components/metadata-contributors.svelte";
     import MetadataKeywords from "$lib/components/metadata-keywords.svelte";
+    import MetadataLicenses from "$lib/components/metadata-licenses.svelte";
     import MetadataResources from "$lib/components/metadata-resources.svelte";
     import MetadataSources from "$lib/components/metadata-sources.svelte";
-    import MetadataLicenses from "$lib/components/metadata-licenses.svelte";
-    import MetadataContributors from "$lib/components/metadata-contributors.svelte";
-    import type { ContributorModel } from "$lib/contributor-fields.ts";
-    import type { LicenseModel } from "$lib/license-fields.ts";
-    import type { SourceModel } from "$lib/source-fields.ts";
-    import type { ResourceModel } from "$lib/resource-fields.ts";
     import MetadataVersionCreated from "$lib/components/metadata-version-created.svelte";
     import { Button } from "$lib/components/ui/button/index.js";
     import * as Field from "$lib/components/ui/field/index.js";
     import { Input } from "$lib/components/ui/input/index.js";
     import { Textarea } from "$lib/components/ui/textarea/index.js";
+    import type { ContributorModel } from "$lib/contributor-fields.ts";
+    import { type CheckState, createDraftChecker } from "$lib/draft-checker.ts";
+    import { type DraftChanges, draftIssues } from "$lib/draft-checks.ts";
+    import type { LicenseModel } from "$lib/license-fields.ts";
+    import type { ResourceModel } from "$lib/resource-fields.ts";
+    import type { SourceModel } from "$lib/source-fields.ts";
 
     let {
         name,
@@ -28,6 +31,7 @@
         contributorModel,
         stageOptions,
         issues,
+        metadataText,
         reloadUrl,
     }: {
         name: string;
@@ -48,8 +52,40 @@
         contributorModel: ContributorModel;
         stageOptions: { value: string; label: string }[];
         issues: string[];
+        metadataText: string;
         reloadUrl: string;
     } = $props();
+    let checkState = $derived<CheckState>({ pending: false, issues });
+    let changes: DraftChanges = {};
+    const checker = createDraftChecker<DraftChanges>(
+        (draft) =>
+            draftIssues(metadataText, {
+                resources: resourceModel.rows.map((fields, id) => ({
+                    id,
+                    fields,
+                })),
+                ...draft,
+            }),
+        (state) => {
+            checkState = state;
+        },
+    );
+    onDestroy(() => checker.dispose());
+
+    function edit(patch: DraftChanges) {
+        changes = {
+            ...changes,
+            ...patch,
+            ...(patch.overview
+                ? { overview: { ...changes.overview, ...patch.overview } }
+                : {}),
+            ...(patch.keywords
+                ? { keywords: { ...changes.keywords, ...patch.keywords } }
+                : {}),
+        };
+        checker.schedule(changes);
+    }
+
     const sections = [
         { id: "metadata-overview", label: "Overview" },
         { id: "root/keywords", label: "Keywords" },
@@ -75,7 +111,9 @@
             >
         {/each}
         <Button href="#metadata-validation" variant="ghost" size="sm"
-            >Checks ({issues.length})</Button
+            >Issues ({checkState.pending
+                ? "…"
+                : checkState.issues.length})</Button
         >
     </nav>
     <p class="text-xs text-muted-foreground">Fields marked * are required.</p>
@@ -87,8 +125,12 @@
                     <Field.Label for="metadata-name" required>Name</Field.Label>
                     <Input
                         id="metadata-name"
-                        name="name"
+                        name="dataset-id"
                         bind:value={name}
+                        oninput={(event) =>
+                            edit({
+                                overview: { name: event.currentTarget.value },
+                            })}
                         required
                         aria-invalid={!name.trim()}
                         aria-describedby={!name.trim()
@@ -109,6 +151,10 @@
                         id="metadata-title"
                         name="title"
                         bind:value={title}
+                        oninput={(event) =>
+                            edit({
+                                overview: { title: event.currentTarget.value },
+                            })}
                         required
                         aria-invalid={!title.trim()}
                         aria-describedby={!title.trim()
@@ -132,6 +178,12 @@
                         id="metadata-description"
                         name="description"
                         bind:value={description}
+                        oninput={(event) =>
+                            edit({
+                                overview: {
+                                    description: event.currentTarget.value,
+                                },
+                            })}
                         required
                         aria-invalid={!description.trim()}
                         aria-describedby={!description.trim()
@@ -146,33 +198,64 @@
                         >
                     {/if}
                 </Field.Field>
-                <MetadataVersionCreated {version} {created} />
+                <MetadataVersionCreated
+                    {version}
+                    {created}
+                    onedit={(overview) => edit({ overview })}
+                />
             </Field.Group>
         </Field.Set>
-        <MetadataKeywords {...keywordFields} {stageOptions} />
-        <MetadataResources model={resourceModel} countUrl={resourceCountUrl} />
-        <MetadataContributors model={contributorModel} />
-        <MetadataLicenses model={licenseModel} />
-        <MetadataSources model={sourceModel} />
+        <MetadataKeywords
+            {...keywordFields}
+            {stageOptions}
+            onedit={(keywords) => edit({ keywords })}
+        />
+        <MetadataResources
+            model={resourceModel}
+            countUrl={resourceCountUrl}
+            onedit={(resources) => edit({ resources })}
+        />
+        <MetadataContributors
+            model={contributorModel}
+            onedit={(contributors) => edit({ contributors })}
+        />
+        <MetadataLicenses
+            model={licenseModel}
+            onedit={(licenses) => edit({ licenses })}
+        />
+        <MetadataSources
+            model={sourceModel}
+            onedit={(sources) => edit({ sources })}
+        />
     </Field.Group>
     <section
         id="metadata-validation"
         aria-label="Metadata validation"
+        aria-busy={checkState.pending}
         class="scroll-mt-28 text-sm"
     >
         <h2 class="mb-2 text-base font-medium">Metadata checks</h2>
-        {#if issues.length}
-            <p>Metadata checks found issues ({issues.length})</p>
+        <p class="mb-2 text-xs text-muted-foreground">
+            Checks update 500 ms after edits. Changes are not saved.
+        </p>
+        <p role="status" aria-live="polite" class="text-muted-foreground">
+            {#if checkState.pending}Checking…
+            {:else if checkState.issues.length}Metadata checks found issues ({checkState
+                    .issues.length})
+            {:else}Metadata checks passed.{/if}
+        </p>
+        {#if !checkState.pending && checkState.issues.length}
             <ul class="list-disc py-2 pl-5 wrap-anywhere">
-                {#each issues as issue, index (`${index}:${issue}`)}
+                {#each checkState.issues as issue, index (`${index}:${issue}`)}
                     <li>{issue}</li>
                 {/each}
             </ul>
-        {:else}<p class="text-muted-foreground">Metadata checks passed.</p>{/if}
+        {/if}
     </section>
     <p class="max-w-prose text-sm text-muted-foreground">
-        Shared checks do not read resources or buckets. Resource counts are separate,
-        read-only file reads. These checks do not authorize publication.
+        Shared checks do not read resources or buckets. Resource counts are
+        separate, read-only file reads. These checks do not authorize
+        publication.
     </p>
     <div
         class="sticky bottom-0 flex flex-col gap-2 border-t bg-background py-3"

@@ -33,7 +33,7 @@ export const load = (async ({ params, url }) => {
 		const licenseModel = licenseFormModel(snapshot.text);
 		const contributorModel = contributorFormModel(snapshot.text);
 		if (resourceMessage) resourceModel.message = [resourceModel.message, resourceMessage].filter(Boolean).join(' ');
-		return { name: params.name, view: 'metadata' as const, issues, overview, keywordFields, stageOptions, resourceModel, sourceModel, licenseModel, contributorModel };
+		return { name: params.name, view: 'metadata' as const, issues, metadataText: snapshot.text, overview, keywordFields, stageOptions, resourceModel, sourceModel, licenseModel, contributorModel };
 	} catch (cause) {
 		if (cause instanceof DescriptorError || cause instanceof DiscoveryError) {
 			console.error(cause);

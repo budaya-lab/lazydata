@@ -1,6 +1,7 @@
 <script lang="ts">
     import XIcon from "@lucide/svelte/icons/x";
     import { tick } from "svelte";
+    import type { DraftRow } from "$lib/draft-checks.ts";
     import { Button } from "$lib/components/ui/button/index.js";
     import * as Field from "$lib/components/ui/field/index.js";
     import { Input } from "$lib/components/ui/input/index.js";
@@ -8,16 +9,17 @@
         MAX_SOURCE_ROWS,
         type SourceFields,
         type SourceModel,
-        sourceDraftIssues,
         sourceLocatorIssue,
     } from "$lib/source-fields.ts";
 
-    let { model }: { model: SourceModel } = $props();
+    let { model, onedit }: {
+        model: SourceModel;
+        onedit: (rows: DraftRow<SourceFields>[]) => void;
+    } = $props();
     type Row = { id: number; fields: SourceFields };
     let rows = $derived<Row[]>(
         model.rows.map((fields, id) => ({ id, fields })),
     );
-    let issues = $derived(sourceDraftIssues(rows.map((row) => row.fields)));
     let nextId = MAX_SOURCE_ROWS;
     let container = $state<HTMLFieldSetElement | null>(null);
     let addButton = $state<HTMLButtonElement | null>(null);
@@ -30,10 +32,12 @@
                 ? { ...row, fields: { ...row.fields, [key]: value } }
                 : row,
         );
+        onedit(rows);
     }
 
     async function add() {
         rows = [...rows, { id: nextId++, fields: { title: "", path: "" } }];
+        onedit(rows);
         announcement = "Source added.";
         await tick();
         container
@@ -45,6 +49,7 @@
     async function remove(id: number) {
         const index = rows.findIndex((row) => row.id === id);
         rows = rows.filter((row) => row.id !== id);
+        onedit(rows);
         announcement = "Source removed.";
         await tick();
         const path = container
@@ -163,15 +168,6 @@
                 No sources yet.
             </p>{/each}
     </Field.Group>
-    {#if issues.length}
-        <Field.Error class="text-xs"
-            ><ul class="list-disc pl-4">
-                {#each issues as issue, index (`${index}:${issue}`)}<li>
-                        {issue}
-                    </li>{/each}
-            </ul></Field.Error
-        >
-    {/if}
     <div>
         <Button
             type="button"

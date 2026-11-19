@@ -24,7 +24,6 @@
         required,
         counter,
         onchange,
-        oncount,
         onremove,
     }: {
         id: number;
@@ -34,7 +33,6 @@
         required: string[];
         counter: ReturnType<typeof createResourceCounter>;
         onchange: (fields: ResourceFields) => void;
-        oncount: (value: number | undefined) => void;
         onremove: () => void;
     } = $props();
     const controls = [
@@ -57,13 +55,11 @@
         sequence++;
         count = null;
         loading = false;
-        oncount(undefined);
     }
 
     async function refresh() {
         const path = fields.path;
         const token = ++sequence;
-        oncount(undefined);
         if (!path?.trim()) {
             count = null;
             loading = false;
@@ -76,7 +72,6 @@
             if (!alive || token !== sequence || next === null) return;
             count = next;
             if (next.status === "counted") {
-                oncount(next.value);
                 if (next.kind === "directory" && fields.format !== "")
                     onchange({ ...fields, format: "" });
             }

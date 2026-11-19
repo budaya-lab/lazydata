@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
+    import type { OverviewEdits } from "$lib/draft-checks.ts";
     import * as Field from "$lib/components/ui/field/index.js";
     import { Input } from "$lib/components/ui/input/index.js";
     import {
@@ -11,7 +12,12 @@
     let {
         version,
         created,
-    }: { version: string | null; created: string | null } = $props();
+        onedit,
+    }: {
+        version: string | null;
+        created: string | null;
+        onedit: (values: OverviewEdits) => void;
+    } = $props();
     let dateValue = $state("");
     let dateError = $state("");
     let ready = $state(false);
@@ -28,6 +34,7 @@
             else dateValue = day;
         }
         ready = true;
+        if (dateError) onedit({ createdError: dateError });
     });
 
     function changeDate(event: Event & { currentTarget: HTMLInputElement }) {
@@ -36,19 +43,15 @@
         dateError = "";
         if (!input.validity.valid) {
             dateError = "Enter a valid date between years 0001 and 9999.";
-            return;
-        }
-        if (!dateValue) {
+        } else if (!dateValue) {
             created = "";
-            return;
+        } else {
+            const value = createdAtLocalMidnight(dateValue);
+            if (value === null) {
+                dateError = "Midnight is not available in your browser's time zone for this date.";
+            } else created = value;
         }
-        const value = createdAtLocalMidnight(dateValue);
-        if (value === null) {
-            dateError =
-                "Midnight is not available in your browser's time zone for this date.";
-            return;
-        }
-        created = value;
+        onedit({ created, createdError: dateError });
     }
 </script>
 
@@ -85,6 +88,7 @@
         id="metadata-version"
         name="version"
         bind:value={version}
+        oninput={(event) => onedit({ version: event.currentTarget.value })}
         placeholder="1.0.0"
         aria-invalid={invalidVersion}
         aria-describedby={invalidVersion ? "metadata-version-error" : undefined}
