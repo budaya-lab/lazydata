@@ -58,7 +58,9 @@ Inputs are local overrides, reset when loaded overview data changes. Tag entry
 commits on Enter/comma/blur, retains internal spaces and avoids new exact
 duplicates. Removing a tag returns focus to its input. Name/Title share a responsive
 row with Description below; Keywords rows are Tasks/Projects then Stage/Extra
-keywords. Created's native date input initializes only on browser mount; SSR does
+keywords. Created comes first, then Version in equal-width columns, without
+format help or a timestamp preview. Created's native date input initializes only
+on browser mount; SSR does
 not choose the server's time zone. The original RFC3339 value is retained until a
 date edit prepares local midnight with the selected date's actual offset. Invalid
 calendar values and unrepresentable midnights are rejected rather than normalized.

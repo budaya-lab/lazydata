@@ -15,8 +15,9 @@ Empty/whitespace-only inputs show inline required errors that clear when filled.
 Input edits remain local. Reload rereads the descriptor. Shared Checks still
 report the saved descriptor, not these local inputs.
 
-Version and Created share a row below Description. Both are optional and start
-blank when absent; no version or current date is invented. Version must be exact
+Created then Version share an equal-width row below Description. Neither has a
+format note or timestamp preview. Both fields are optional and start blank when absent; no version
+or current date is invented. Version must be exact
 SemVer (including optional prerelease/build identifiers) when filled. Invalid
 supplied types remain blank with an error rather than being coerced.
 
@@ -25,10 +26,9 @@ from the server time zone. Existing timestamps display their browser-local date;
 the original timestamp, time, offset and precision remain unchanged until edited.
 Changing the date prepares `YYYY-MM-DDT00:00:00±HH:MM` using the browser's offset
 at midnight on that selected date, including daylight-saving rules. The prepared
-RFC3339 value is shown below the date input and stays local in the hidden
-`created` control; it is not a file save. The preview keeps the original timestamp
-until edited, matches the prepared value after edits and is hidden when invalid.
-Clearing the date clears both the local value and its preview. Invalid dates, skipped midnights/days
+RFC3339 value stays local in the hidden `created` control; it is not a file save.
+The original timestamp stays unchanged until edited. Clearing the date clears
+the local value. Invalid dates, skipped midnights/days
 and historical sub-minute offsets show an error instead of silently shifting time.
 Without browser JavaScript, the date input remains disabled. No time/zone selector.
 

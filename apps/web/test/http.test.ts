@@ -519,15 +519,26 @@ for (const mode of ['dev', 'built'] as const) {
     assert.match(version, /aria-invalid="false"/); assert.doesNotMatch(version, /\srequired(?:[\s=>])/);
     const date = html.match(/<input\b(?=[^>]*id="metadata-created")[^>]*>/)?.[0];
     assert.ok(date); assert.ok(html.includes('for="metadata-created"'));
+    assert.ok(html.indexOf('for="metadata-created"') < html.indexOf('for="metadata-version"'), 'Created precedes Version');
     assert.match(date, /type="date"/); assert.match(date, /\sdisabled(?:[\s=>])/);
     assert.match(date, /value=""/); assert.doesNotMatch(date, /\srequired(?:[\s=>])/);
     const serialized = html.match(/<input\b(?=[^>]*type="hidden")(?=[^>]*name="created")[^>]*>/)?.[0];
     assert.ok(serialized); assert.ok(serialized.includes(`value="${descriptor.created}"`));
-    const previewStart = html.indexOf('id="metadata-created-help"');
-    assert.ok(previewStart >= 0);
-    const preview = html.slice(previewStart, html.indexOf('</p>', previewStart));
-    assert.ok(preview.includes(descriptor.created), 'Created shows the exact recorded RFC3339 value');
-    assert.doesNotMatch(html, /Date changes use midnight|type="(?:time|datetime-local)"/);
+    assert.doesNotMatch(html, /id="metadata-created-help"|Uses RFC 3339 date-time format/);
+    assert.doesNotMatch(date, /aria-describedby/);
+    assert.doesNotMatch(html, /Saved as|Date changes use midnight|type="(?:time|datetime-local)"/);
+    for (const created of ['', null]) {
+      await fs.writeFile(path, JSON.stringify({ ...descriptor, created }));
+      const blank = await (await fetch(`${url}/datasets/ds-version-created?view=metadata`)).text();
+      assert.doesNotMatch(blank, /id="metadata-created-help"/);
+      const blankDate = blank.match(/<input\b(?=[^>]*id="metadata-created")[^>]*>/)?.[0];
+      assert.ok(blankDate);
+      assert.doesNotMatch(blankDate, /metadata-created-help/);
+      if (created === null) {
+        assert.match(blankDate, /aria-describedby="metadata-created-error"/);
+        assert.match(blank, /id="metadata-created-error"/);
+      }
+    }
     await fs.writeFile(path, JSON.stringify({ ...descriptor, version: '01.2.3' }));
     const invalid = await (await fetch(`${url}/datasets/ds-version-created?view=metadata`)).text();
     assert.match(invalid, /<input\b(?=[^>]*id="metadata-version")(?=[^>]*aria-invalid="true")[^>]*>/);

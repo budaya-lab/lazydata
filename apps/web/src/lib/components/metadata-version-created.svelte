@@ -52,6 +52,33 @@
     }
 </script>
 
+<Field.Field data-invalid={invalidCreated}>
+    <Field.Label for="metadata-created">Created</Field.Label>
+    <Input
+        id="metadata-created"
+        name="createdDate"
+        type="date"
+        value={dateValue}
+        min="0001-01-01"
+        max="9999-12-31"
+        disabled={!ready}
+        oninput={changeDate}
+        aria-invalid={invalidCreated}
+        aria-describedby={invalidCreated ? "metadata-created-error" : undefined}
+    />
+    <input
+        type="hidden"
+        name="created"
+        value={created ?? ""}
+        disabled={!ready || invalidCreated}
+    />
+    {#if invalidCreated}
+        <Field.Error class="text-xs" id="metadata-created-error"
+            >{dateError ||
+                "Created must be a valid RFC3339 date-time."}</Field.Error
+        >
+    {/if}
+</Field.Field>
 <Field.Field data-invalid={invalidVersion}>
     <Field.Label for="metadata-version">Version</Field.Label>
     <Input
@@ -65,38 +92,6 @@
     {#if invalidVersion}
         <Field.Error class="text-xs" id="metadata-version-error"
             >Use a valid SemVer version, such as 1.0.0.</Field.Error
-        >
-    {/if}
-</Field.Field>
-<Field.Field data-invalid={invalidCreated}>
-    <Field.Label for="metadata-created">Created</Field.Label>
-    <Input
-        id="metadata-created"
-        name="createdDate"
-        type="date"
-        value={dateValue}
-        min="0001-01-01"
-        max="9999-12-31"
-        disabled={!ready}
-        oninput={changeDate}
-        aria-invalid={invalidCreated}
-        aria-describedby={`metadata-created-help${invalidCreated ? " metadata-created-error" : ""}`}
-    />
-    <input
-        type="hidden"
-        name="created"
-        value={created ?? ""}
-        disabled={!ready || invalidCreated}
-    />
-    <Field.Description id="metadata-created-help" aria-live="polite">
-        {#if !invalidCreated}Saved as <code class="text-xs wrap-anywhere"
-                >{created ?? ""}</code
-            >{/if}
-    </Field.Description>
-    {#if invalidCreated}
-        <Field.Error class="text-xs" id="metadata-created-error"
-            >{dateError ||
-                "Created must be a valid RFC3339 date-time."}</Field.Error
         >
     {/if}
 </Field.Field>
