@@ -251,7 +251,7 @@ for (const mode of ['dev', 'built'] as const) {
     const modern = {
       name: 'modern', title: 'Supplied title', description: 'Supplied description',
       keywords: ['task:classification', 'project:example', 'stage:curated'],
-      contributors: [{ title: 'Alice', roles: ['creator'] }, { title: 'Bob', roles: ['reviewer'] }],
+      contributors: [{ title: 'Alice', roles: ['creator', 'Data curator'] }, { title: 'Bob', roles: ['reviewer'] }],
       resources: [{ name: 'input', title: 'Input', path: 'missing.csv' }],
       licenses: [{ name: 'MIT' }, { name: 'Custom-License' }],
       sources: [
@@ -306,6 +306,25 @@ for (const mode of ['dev', 'built'] as const) {
     assert.match(pages.modern, /Metadata checks passed/);
     assert.match(pages.modern, /aria-label="Sources"/);
     assert.match(pages.modern, /Add a source/);
+    assert.match(pages.modern, /aria-label="Contributors"/);
+    assert.match(pages.modern, /Add a contributor/);
+    for (const [index, value] of ['Alice', 'Bob'].entries()) {
+      const input = pages.modern.match(new RegExp(`<input\\b(?=[^>]*name="contributor-${index}-title")[^>]*>`))?.[0];
+      assert.ok(input, `contributor ${index + 1} name`);
+      assert.ok(input.includes(`value="${value}"`));
+      assert.match(input, /\srequired(?:[\s=>])/);
+      const id = input.match(/\bid="([^"]+)"/)?.[1];
+      assert.ok(pages.modern.includes(`for="${id}"`));
+      const roles = pages.modern.match(new RegExp(`<input\\b(?=[^>]*id="contributor-${index}-roles")[^>]*>`))?.[0];
+      assert.ok(roles);
+      assert.ok(roles.includes(`list="contributor-${index}-roles-suggestions"`));
+      assert.doesNotMatch(roles, /\srequired(?:[\s=>])/);
+    }
+    assert.match(pages.modern, /<option value="creator"><\/option>/);
+    assert.ok(pages.modern.includes('>Data curator</span>'));
+    assert.match(pages.unusual, /Some supplied contributor values are unsupported/);
+    assert.match(pages.unusual, /Roles have an unsupported value/);
+    assert.match(pages.legacy, /No contributors yet/);
     assert.match(pages.modern, /aria-label="Licenses"/);
     assert.match(pages.modern, /id="metadata-licenses-suggestions"/);
     assert.match(pages.modern, /<option value="MIT"><\/option>/);

@@ -6,6 +6,7 @@ import { inspectMetadata, stageOptions } from "../../../lib/server/metadata.ts";
 import { readReadme } from "../../../lib/server/readme.ts";
 import { resourceFormModel, type ResourceOption } from '../../../lib/resource-fields.ts';
 import { licenseFormModel } from '../../../lib/license-fields.ts';
+import { contributorFormModel } from '../../../lib/contributor-fields.ts';
 import { sourceFormModel } from '../../../lib/source-fields.ts';
 import { listResourcePaths, ResourceReadError } from '../../../lib/server/resource-files.ts';
 import type { PageServerLoad } from "./$types";
@@ -30,8 +31,9 @@ export const load = (async ({ params, url }) => {
 		const resourceModel = resourceFormModel(snapshot.text, options);
 		const sourceModel = sourceFormModel(snapshot.text);
 		const licenseModel = licenseFormModel(snapshot.text);
+		const contributorModel = contributorFormModel(snapshot.text);
 		if (resourceMessage) resourceModel.message = [resourceModel.message, resourceMessage].filter(Boolean).join(' ');
-		return { name: params.name, view: 'metadata' as const, issues, overview, keywordFields, stageOptions, resourceModel, sourceModel, licenseModel };
+		return { name: params.name, view: 'metadata' as const, issues, overview, keywordFields, stageOptions, resourceModel, sourceModel, licenseModel, contributorModel };
 	} catch (cause) {
 		if (cause instanceof DescriptorError || cause instanceof DiscoveryError) {
 			console.error(cause);

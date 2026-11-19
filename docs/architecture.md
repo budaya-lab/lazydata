@@ -31,7 +31,7 @@ GET parameters, never roots or filesystem paths. Workspace counts do not change
 with filtering. Normal GET navigation and refresh rerun the read-only checks.
 
 Dataset detail defaults to root README.md. `?view=metadata` contains a form
-with local-only Overview/Keywords/Resources controls, section navigation, disabled Save/Reset, Reload and read-only checks. `?view=datapackage` is read-only raw text. The bounded text reader admits only discovered
+with local-only Overview/Keywords/Resources/Contributors/Licenses/Sources controls, section navigation, disabled Save/Reset, Reload and read-only checks. `?view=datapackage` is read-only raw text. The bounded text reader admits only discovered
 datasets and these two server-selected filenames. README availability does not
 require a descriptor. Server-only Markdown parsing produces an allowlisted tree,
 rendered as escaped Svelte elements/text, never injected HTML. Dataset images and
@@ -105,6 +105,14 @@ new draft values reuse shared validator checks. Supplied name strings are shown
 unchanged. Path-only/malformed entries are not converted to names and remain in
 the untouched raw descriptor. Tags map locally to `{ name }`; no writer or policy
 change is introduced.
+
+Contributors uses stable-ID local add/remove rows. Name maps only to the supplied
+Data Package `title`, not inferred names or legacy fields. Each local row requires
+a name; Roles is optional and reuses the license tag control with suggestions
+and custom text. Role checks reuse the portable validator. Supplied string arrays
+retain order, duplicates and spaces; unsupported name/role types use null sentinels
+and show warnings instead of coercion. The form caps rows at 200. Shared policy
+and saved-descriptor checks do not change.
 
 There is no save path. Read-only Checks remain saved-descriptor checks.
 Navigation/footer remain; Save/Reset stay disabled. There is no former editor

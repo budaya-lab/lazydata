@@ -3,6 +3,8 @@
     import MetadataResources from "$lib/components/metadata-resources.svelte";
     import MetadataSources from "$lib/components/metadata-sources.svelte";
     import MetadataLicenses from "$lib/components/metadata-licenses.svelte";
+    import MetadataContributors from "$lib/components/metadata-contributors.svelte";
+    import type { ContributorModel } from "$lib/contributor-fields.ts";
     import type { LicenseModel } from "$lib/license-fields.ts";
     import type { SourceModel } from "$lib/source-fields.ts";
     import type { ResourceModel } from "$lib/resource-fields.ts";
@@ -23,6 +25,7 @@
         resourceCountUrl,
         sourceModel,
         licenseModel,
+        contributorModel,
         stageOptions,
         issues,
         reloadUrl,
@@ -42,6 +45,7 @@
         resourceCountUrl: string;
         sourceModel: SourceModel;
         licenseModel: LicenseModel;
+        contributorModel: ContributorModel;
         stageOptions: { value: string; label: string }[];
         issues: string[];
         reloadUrl: string;
@@ -147,6 +151,7 @@
         </Field.Set>
         <MetadataKeywords {...keywordFields} {stageOptions} />
         <MetadataResources model={resourceModel} countUrl={resourceCountUrl} />
+        <MetadataContributors model={contributorModel} />
         <MetadataLicenses model={licenseModel} />
         <MetadataSources model={sourceModel} />
     </Field.Group>
