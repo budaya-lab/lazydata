@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { countResourceText } from '../src/lib/server/resource-count.ts';
 
 test('counts CSV/TSV records, not physical lines, excluding headers and blank lines', () => {
-  assert.equal(countResourceText('\uFEFFname,value\r\na,1\r\n"b\nwith \"\"quotes\"\"",2\r\n\r\n', 'csv'), 2);
+  assert.equal(countResourceText('\uFEFFname,value\r\na,1\r\n"b\nwith ""quotes""",2\r\n\r\n', 'csv'), 2);
   assert.equal(countResourceText('a\tb\r\n1\t"two\nlines"\n', 'tsv'), 1);
   assert.equal(countResourceText('a,b'), 0);
   assert.equal(countResourceText('', 'csv'), 0);
@@ -31,5 +31,5 @@ test('bounds JSON nesting before parsing untrusted arrays or JSONL values', () =
   const nested = '['.repeat(129) + '0' + ']'.repeat(129);
   assert.throws(() => countResourceText(nested, 'json'), /128-level/);
   assert.throws(() => countResourceText(nested, 'jsonl'), /128-level/);
-  assert.equal(countResourceText('["[\\\"\\\"[[[", {}]', 'json'), 2);
+  assert.equal(countResourceText('["[\\"\\"[[[", {}]', 'json'), 2);
 });
