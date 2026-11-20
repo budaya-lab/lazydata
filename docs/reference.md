@@ -23,8 +23,9 @@ dataset-local scripts. It is not a sandbox against concurrent filesystem changes
 or authority to read or publish data. It does not establish full Data Package
 conformance, data quality, confidentiality or licensing authority.
 
-The JSON import example in the package README targets Node.js 24. Browser and
-SvelteKit integration have not been implemented or verified.
+The JSON import example in the package README targets Node.js 24. The validator
+has no browser-specific entry point. Steward consumes the workspace package;
+its bundle/VM probe checks portability, not interactive browser behavior.
 
 ### Bundled policy
 
