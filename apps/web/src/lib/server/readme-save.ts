@@ -1,4 +1,4 @@
-import { parseBuckets } from '@lazydata/validator';
+import { parseBuckets } from '@penjaga/validator';
 import { MAX_DATASET_TEXT_BYTES } from '../dataset-text-limits.ts';
 import { writeAtomicText } from './atomic-text.ts';
 import { DatasetNotFoundError, DatasetTextError, readDatasetSnapshot } from './dataset-text.ts';

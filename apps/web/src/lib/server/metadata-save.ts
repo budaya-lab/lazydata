@@ -1,5 +1,5 @@
-import { validateMetadata } from '@lazydata/validator';
-import policy from '@lazydata/validator/policy' with { type: 'json' };
+import { validateMetadata } from '@penjaga/validator';
+import policy from '@penjaga/validator/policy' with { type: 'json' };
 import { MAX_DATASET_TEXT_BYTES } from '../dataset-text-limits.ts';
 import { MetadataDraftError, readMetadataObject } from '../metadata-json.ts';
 import { DatasetTextError, readDatasetSnapshot } from './dataset-text.ts';

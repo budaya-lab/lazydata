@@ -1,5 +1,5 @@
-import { validateMetadata } from '@lazydata/validator';
-import policy from '@lazydata/validator/policy' with { type: 'json' };
+import { validateMetadata } from '@penjaga/validator';
+import policy from '@penjaga/validator/policy' with { type: 'json' };
 
 export type ResourceOption = { path: string; kind: 'file' | 'directory' };
 export type ResourceFields = { name: string | null; path: string | null; title: string | null; format: string | null };

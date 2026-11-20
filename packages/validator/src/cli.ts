@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util';
 
 import { validateDataPackage } from './repository.js';
 
-const usage = 'Usage: lazydata-validate [dataset-root]';
+const usage = 'Usage: penjaga-validate [dataset-root]';
 
 function readDescriptor(root: string): unknown {
   try {

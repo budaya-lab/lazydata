@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { getStage, stageLabel } from '@lazydata/validator';
+import { getStage, stageLabel } from '@penjaga/validator';
 import policy from '../dataset.config.json' with { type: 'json' };
 
 test('stage helpers allow missing catalogue stages and use configured labels', () => {

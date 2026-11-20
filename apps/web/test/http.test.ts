@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test, type TestContext } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import policy from '@lazydata/validator/policy' with { type: 'json' };
+import policy from '@penjaga/validator/policy' with { type: 'json' };
 
 const app = fileURLToPath(new URL('../', import.meta.url));
 
@@ -112,7 +112,7 @@ for (const mode of ['dev', 'built'] as const) {
   test(`${mode}: keeps the local HTTP origin despite forged proxy headers`, async (t) => {
     const root = await fixture(t);
     const { url, logs } = await serve(t, mode, root);
-    const headers = { origin: url, 'x-lazydata-protocol': 'https', 'x-forwarded-proto': 'https',
+    const headers = { origin: url, 'x-penjaga-protocol': 'https', 'x-forwarded-proto': 'https',
       'x-forwarded-host': 'untrusted.example', 'x-forwarded-port': '443' };
     assert.equal((await fetch(url, { headers })).status, 200, logs());
     assert.equal((await fetch(url, { method: 'POST', headers, body: new URLSearchParams() })).status, 405);
@@ -826,6 +826,9 @@ for (const mode of ['dev', 'built'] as const) {
     const response = await fetch(url);
     assert.equal(response.status, 200, logs());
     const html = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
+    assert.match(html, /<title>Datasets — Penjaga<\/title>/);
+    assert.match(html, />Penjaga<\/span>/);
+    assert.doesNotMatch(html, /Lazydata/);
     assert.match(html, /aria-label="Dataset views"/);
     assert.match(html, /<table\b/);
     assert.match(html, /<caption[^>]*>Showing 3 of 3 datasets/);
@@ -895,6 +898,7 @@ for (const mode of ['dev', 'built'] as const) {
     const missing = await fetch(url);
     assert.equal(missing.status, 500);
     const html = await missing.text();
+    assert.match(html, /<title>Dataset error — Penjaga<\/title>/);
     assert.match(html, /Could not read DATASET_ROOT/);
     assert.equal(html.includes(root), false);
     assert.doesNotMatch(html, /ENOENT|at discoverDatasets|No ds-\* folders found|\sstyle=/);

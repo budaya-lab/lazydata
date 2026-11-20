@@ -59,7 +59,9 @@ a portable VM, CLI failures and isolated consumers. Consumer declarations compil
 without Node ambient types; the CLI also runs through a symlink. The install test
 uses a loopback URL and fresh pnpm store, then checks a frozen offline reinstall,
 API imports and CLI use without a compiler or registry. To test a prebuilt
-archive, set both `VALIDATOR_ARCHIVE` and `VALIDATOR_VERSION`.
+archive, set both `VALIDATOR_ARCHIVE` and `VALIDATOR_VERSION`. For a historical
+archive, also set `VALIDATOR_PACKAGE=@lazydata/validator`; the default is
+`@penjaga/validator`.
 
 The suite needs pnpm and `tar`. CI targets Node.js 24 LTS.
 Real-browser verification is separate. Adoption must replace common checks rather
@@ -88,7 +90,8 @@ cutover; do not copy source, fetch moving branches or use sibling checkouts.
 
 Owners must enforce reviewed PRs and the `tests` check on main, restrict direct
 pushes and permit Actions to create PRs. Workflows do not configure those settings.
-Keep workflow **Validate lazydata** and check **tests** stable.
+Keep workflow **Validate lazydata** and check **tests** stable. The workflow's
+legacy label is intentional to preserve release gating.
 
 ### Publish or retry an archive
 
@@ -96,7 +99,8 @@ A new release calls [Publish validator archive](../.github/workflows/publish-val
 It verifies the published stable semver tag belongs to main history and matches
 root/package/manifest versions. It builds, tests and audits tagged code, packs
 compiled JavaScript, declarations and policy, then tests the exact archive before
-uploading `lazydata-validator-VERSION.tgz`. Packages remain private; there is no
+uploading `penjaga-validator-VERSION.tgz` for renamed packages (or the original
+`lazydata-validator-VERSION.tgz` when retrying a historical tag). Packages remain private; there is no
 registry publication, consumer build step or standalone checksum file. Pin the
 exact release URL and keep normal package manager lockfile integrity enabled.
 

@@ -1,5 +1,5 @@
 {
-  "name": "@lazydata/validator",
+  "name": "@penjaga/validator",
   "version": "1.1.0",
   "description": "Read-only dataset metadata and repository validation",
   "private": true,
@@ -20,7 +20,7 @@
     "./policy": "./dataset.config.json"
   },
   "bin": {
-    "lazydata-validate": "./dist/cli.js"
+    "penjaga-validate": "./dist/cli.js"
   },
   "files": [
     "dist",

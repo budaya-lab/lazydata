@@ -69,7 +69,7 @@ The generated layout is title, name/Created-date subtitle, badges (including
 Version when supplied), then description paragraphs. Contributors and sources
 use lists; only resources and buckets use tables. The subtitle shows the supplied
 Created calendar date without timezone conversion; missing dates/versions are
-omitted. The viewer hides Lazydata's generated header and notes delimiter, not
+omitted. The viewer hides Penjaga's generated header, its legacy header and the notes delimiter, not
 arbitrary HTML, and renders tight lists without extra paragraph wrappers.
 
 Text below `<!-- notes -->` is kept exactly. An unmarked handwritten README is
@@ -83,19 +83,19 @@ The two files are replaced separately, not as one transaction.
 
 ## Run locally
 
-Use Node.js 24+ and pnpm 12.x. Install from the `lazydata/` workspace root:
+Use Node.js 24+ and pnpm 12.x. Install from the `penjaga/` workspace root:
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
-DATASET_ROOT="/absolute/path/to/datasets" pnpm --filter @lazydata/steward dev
+DATASET_ROOT="/absolute/path/to/datasets" pnpm --filter @penjaga/steward dev
 ```
 
 `DATASET_ROOT` must name the parent directory, not a dataset. The development
 server binds to loopback. For a built server:
 
 ```sh
-pnpm --filter @lazydata/steward build
-DATASET_ROOT="/absolute/path/to/datasets" pnpm --filter @lazydata/steward start
+pnpm --filter @penjaga/steward build
+DATASET_ROOT="/absolute/path/to/datasets" pnpm --filter @penjaga/steward start
 ```
 
 The start wrapper binds to `127.0.0.1` and uses port 3000 unless `PORT` is set.
@@ -114,8 +114,8 @@ From the workspace root:
 
 ```sh
 pnpm lint
-pnpm --filter @lazydata/steward check
-pnpm --filter @lazydata/steward test
+pnpm --filter @penjaga/steward check
+pnpm --filter @penjaga/steward test
 ```
 
 Tests use temporary fixtures and exercise dev/build HTTP behavior. A Vite bundle

@@ -1,5 +1,5 @@
-import { validateMetadata } from '@lazydata/validator';
-import policy from '@lazydata/validator/policy' with { type: 'json' };
+import { validateMetadata } from '@penjaga/validator';
+import policy from '@penjaga/validator/policy' with { type: 'json' };
 import { contributorFieldIssues, contributorFormModel, type ContributorFields } from './contributor-fields.ts';
 import { isSemver } from './overview-values.ts';
 import type { ResourceFields } from './resource-fields.ts';

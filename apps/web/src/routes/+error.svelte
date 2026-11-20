@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-    <title>Dataset error — Lazydata</title>
+    <title>Dataset error — Penjaga</title>
 </svelte:head>
 
 <section class="flex flex-col gap-4">

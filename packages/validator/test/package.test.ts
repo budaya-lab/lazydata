@@ -77,8 +77,8 @@ test('an isolated consumer uses its bundled policy and never changes files, incl
     writeFileSync(join(dataset, 'datapackage.json'), JSON.stringify(data));
 
     const beforeImport = snapshot();
-    const portable: typeof import('@lazydata/validator') = await import(pathToFileURL(join(bundle, 'dist/index.js')).href);
-    const local: typeof import('@lazydata/validator/repository') = await import(pathToFileURL(join(bundle, 'dist/repository.js')).href);
+    const portable: typeof import('@penjaga/validator') = await import(pathToFileURL(join(bundle, 'dist/index.js')).href);
+    const local: typeof import('@penjaga/validator/repository') = await import(pathToFileURL(join(bundle, 'dist/repository.js')).href);
 
     assert.deepEqual(snapshot(), beforeImport, 'imports must not change files');
     assert.deepEqual(unchanged(() => local.validateDataPackage(data, dataset)), []);
