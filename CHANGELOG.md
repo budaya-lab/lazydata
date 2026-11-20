@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/budaya-lab/penjaga/compare/v1.1.0...v1.2.0) (2026-11-20)
+
+
+### Features
+
+* **steward:** generate dataset readmes on save ([ea1e508](https://github.com/budaya-lab/penjaga/commit/ea1e508d008a14c6d91a638666ce36ad4cc60bc8))
+* **steward:** generate dataset readmes on save ([f2d7fb3](https://github.com/budaya-lab/penjaga/commit/f2d7fb3cfb40855be14cea3cb7f7b38aa6b2a810))
+
 ## [1.1.0](https://github.com/budaya-lab/lazydata/compare/v1.0.1...v1.1.0) (2026-11-20)
 
 
