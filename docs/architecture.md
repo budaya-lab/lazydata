@@ -130,7 +130,7 @@ results and show Checking; revision tokens/cancellation prevent obsolete timers
 from publishing, and teardown cancels work on navigation. A synchronous flush is
 tested for future explicit Save integration, but Save remains disabled.
 
-The owner simplified the [draft model](steward-save.md): `metadata-draft.ts` owns
+The owner simplified the draft model: `metadata-draft.ts` owns
 one working object. Controls update its properties/arrays directly; JSON preview
 and checks use `JSON.stringify` serialization. Text/AST editing, local patch
 operations, cumulative journal and the legacy validation overlay are removed.
@@ -176,8 +176,9 @@ sync/input fix; this simpler path, buffer/clear UX and persistence need review.
 
 Save/Reset remain disabled. The former editor has not been restored; no Save
 handler/writer exists and POST is refused with 405. The JSON view is still read-only;
-synchronization changes only browser state. No dataset files are written. Transaction/platform limits
-and the revised implementation order are in the shared draft/Save contract.
+synchronization changes only browser state. No dataset files are written.
+Persistence remains deferred and requires a separate platform and safety review
+before implementation.
 
 The Node startup wrapper pins loopback and supplies a trusted HTTP protocol header
 before the adapter handles requests; client proxy headers never define the origin.

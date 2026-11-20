@@ -132,8 +132,8 @@ needs browser review.
 
 Future Save sends one `{ revision, text }` request, not fields or another form/raw
 mode. The server will admit the serialized candidate and guard persistence.
-Direct JSON entry and Save remain pending. See the [draft/Save contract](../../docs/steward-save.md)
-for the current preservation decision and proposed filesystem limits.
+Direct JSON entry and Save remain pending. Any future persistence design needs
+separate review; no writer or save endpoint exists.
 
 There is no save endpoint, writer, automatic Created date or dataset creation.
 Save and Reset are disabled placeholders. The app never writes dataset files,
