@@ -13,7 +13,12 @@
     import type { PageProps } from "./$types";
 
     let { data }: PageProps = $props();
-    const columns = ["Task", "Project", "Stage", "Creators"];
+    const columns = [
+        { label: "Task", width: "w-32" },
+        { label: "Project", width: "w-36" },
+        { label: "Stage", width: "w-28" },
+        { label: "Creators", width: "w-40" },
+    ];
     let refreshUrl = $derived(
         `${resolve("/")}?${new URLSearchParams({ q: data.query, status: data.status })}`,
     );
@@ -33,7 +38,7 @@
     <title>Datasets — Lazydata</title>
 </svelte:head>
 
-<section aria-labelledby="datasets-heading" class="flex min-w-0 flex-col gap-6">
+<section aria-labelledby="datasets-heading" class="flex min-w-0 flex-col gap-4">
     <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="flex flex-col gap-2">
             <h1
@@ -116,51 +121,70 @@
     </p>
 
     {#if data.datasets.length}
-        <div class="min-w-0 border">
-            <Table.Root>
-                <Table.Caption
-                    >Showing {data.datasets.length} of {data.counts.total} datasets</Table.Caption
-                >
+        <div class="min-w-0 overflow-hidden rounded-md border">
+            <Table.Root class="min-w-[56rem] table-fixed">
+                <Table.Caption class="mt-0 border-t px-3 py-2 text-xs">
+                    Showing {data.datasets.length} of {data.counts.total} datasets
+                </Table.Caption>
                 <Table.Header>
                     <Table.Row>
-                        <Table.Head scope="col">Dataset</Table.Head>
-                        <Table.Head scope="col">Metadata checks</Table.Head>
-                        {#each columns as column (column)}<Table.Head
-                                scope="col">{column}</Table.Head
-                            >{/each}
+                        <Table.Head
+                            scope="col"
+                            class="w-56 h-9 px-3 py-2 normal-case tracking-normal"
+                        >
+                            Dataset
+                        </Table.Head>
+                        <Table.Head
+                            scope="col"
+                            class="w-32 h-9 px-3 py-2 normal-case tracking-normal"
+                        >
+                            Status
+                        </Table.Head>
+                        {#each columns as column (column.label)}
+                            <Table.Head
+                                scope="col"
+                                class="{column.width} h-9 px-3 py-2 normal-case tracking-normal"
+                            >
+                                {column.label}
+                            </Table.Head>
+                        {/each}
                     </Table.Row>
                 </Table.Header>
                 <Table.Body>
                     {#each data.datasets as dataset (dataset.name)}
                         <Table.Row>
-                            <Table.Cell
-                                class="min-w-56"
-                            >
-                                <div class="flex flex-col gap-1">
+                            <Table.Cell class="w-56 px-3 py-2">
+                                <div class="flex min-w-0 flex-col gap-0.5">
                                     <a
                                         href={resolve("/datasets/[name]", {
                                             name: encodeURIComponent(
                                                 dataset.name,
                                             ),
                                         })}
-                                        class="w-max whitespace-nowrap font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                                        class="block max-w-full whitespace-normal wrap-anywhere font-medium
+                                            underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                                        title={dataset.name}
                                         data-dataset-link>{dataset.name}</a
                                     >
                                     <p
-                                        class="max-w-80 whitespace-normal wrap-anywhere text-xs leading-relaxed text-muted-foreground"
+                                        class="whitespace-normal wrap-anywhere text-xs leading-relaxed text-muted-foreground"
+                                        title={supplied(dataset, "Title")}
                                     >
                                         {supplied(dataset, "Title")}
                                     </p>
                                 </div>
                             </Table.Cell>
-                            <Table.Cell class="max-w-64 whitespace-normal"
-                                ><MetadataStatus {dataset} /></Table.Cell
-                            >
-                            {#each columns as column (column)}
+                            <Table.Cell class="w-32 px-3 py-2">
+                                <MetadataStatus {dataset} />
+                            </Table.Cell>
+                            {#each columns as column (column.label)}
+                                {@const value = supplied(dataset, column.label)}
                                 <Table.Cell
-                                    class="max-w-56 whitespace-normal wrap-anywhere"
-                                    >{supplied(dataset, column)}</Table.Cell
+                                    class="{column.width} whitespace-normal wrap-anywhere px-3 py-2"
+                                    title={value}
                                 >
+                                    {value}
+                                </Table.Cell>
                             {/each}
                         </Table.Row>
                     {/each}

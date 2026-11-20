@@ -10,13 +10,39 @@
   } = $props();
 </script>
 
-<div class="flex flex-col items-start gap-2">
+<div class="flex flex-col items-start gap-1">
   {#if dataset.status === 'unavailable'}
-    <Badge variant="outline"><FileQuestionIcon data-icon="inline-start" aria-hidden="true" />Metadata unavailable</Badge>
-    <p class="max-w-64 text-xs leading-relaxed text-muted-foreground">{dataset.message}</p>
+    <Badge
+      variant="outline"
+      aria-label="Metadata unavailable"
+      title="Metadata unavailable"
+      class="text-xs normal-case tracking-normal"
+    >
+      <FileQuestionIcon data-icon="inline-start" aria-hidden="true" />Unavailable
+    </Badge>
+    <p
+      class="line-clamp-2 max-w-36 text-xs leading-snug text-muted-foreground"
+      title={dataset.message}
+    >
+      {dataset.message}
+    </p>
   {:else if dataset.status === 'issues'}
-    <Badge variant="secondary"><CircleAlertIcon data-icon="inline-start" aria-hidden="true" />Metadata issues ({dataset.issueCount})</Badge>
+    <Badge
+      variant="secondary"
+      aria-label={`Metadata issues: ${dataset.issueCount}`}
+      title={`Metadata issues: ${dataset.issueCount}`}
+      class="text-xs normal-case tracking-normal"
+    >
+      <CircleAlertIcon data-icon="inline-start" aria-hidden="true" />Issues ({dataset.issueCount})
+    </Badge>
   {:else}
-    <Badge variant="outline"><CircleCheckIcon data-icon="inline-start" aria-hidden="true" />Metadata checks passed</Badge>
+    <Badge
+      variant="outline"
+      aria-label="Metadata checks passed"
+      title="Metadata checks passed"
+      class="text-xs normal-case tracking-normal"
+    >
+      <CircleCheckIcon data-icon="inline-start" aria-hidden="true" />Passed
+    </Badge>
   {/if}
 </div>

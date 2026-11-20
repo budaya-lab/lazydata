@@ -725,10 +725,13 @@ for (const mode of ['dev', 'built'] as const) {
     const response = await fetch(url);
     assert.equal(response.status, 200, logs());
     const html = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
-    assert.match(tableRow(html, 'ds-passed'), /Metadata checks passed/);
-    assert.match(tableRow(html, 'ds-issues'), /Metadata issues \(1\)/);
-    assert.match(tableRow(html, 'ds-missing'), /Metadata unavailable/);
-    assert.match(tableRow(html, 'ds-unsafe'), /Metadata unavailable/);
+    assert.match(tableRow(html, 'ds-passed'), />Passed</);
+    assert.match(tableRow(html, 'ds-issues'), />Issues \(1\)</);
+    assert.match(tableRow(html, 'ds-missing'), />Unavailable</);
+    assert.match(tableRow(html, 'ds-unsafe'), />Unavailable</);
+    assert.match(tableRow(html, 'ds-passed'), /aria-label="Metadata checks passed"/);
+    assert.match(tableRow(html, 'ds-issues'), /aria-label="Metadata issues: 1"/);
+    assert.match(tableRow(html, 'ds-missing'), /aria-label="Metadata unavailable"/);
     assert.match(html, /Resource files and buckets are not read/);
     assert.doesNotMatch(html, /outside marker|Dataset is valid/);
     assert.equal(html.includes(root), false);
@@ -738,7 +741,7 @@ for (const mode of ['dev', 'built'] as const) {
     const fixed = await snapshot(base);
     const refreshed = await fetch(url);
     assert.equal(refreshed.status, 200, logs());
-    assert.match(tableRow((await refreshed.text()).replace(/<!--[\s\S]*?-->/g, ''), 'ds-issues'), /Metadata checks passed/);
+    assert.match(tableRow((await refreshed.text()).replace(/<!--[\s\S]*?-->/g, ''), 'ds-issues'), />Passed</);
     assert.deepEqual(await snapshot(base), fixed);
   });
 
@@ -761,7 +764,7 @@ for (const mode of ['dev', 'built'] as const) {
     assert.match(html, /aria-label="Dataset views"/);
     assert.match(html, /<table\b/);
     assert.match(html, /<caption[^>]*>Showing 3 of 3 datasets/);
-    for (const heading of ['Dataset', 'Metadata checks', 'Task', 'Project', 'Stage', 'Creators']) {
+    for (const heading of ['Dataset', 'Status', 'Task', 'Project', 'Stage', 'Creators']) {
       assert.match(html, new RegExp(`<th[^>]*>${heading}</th>`));
     }
     assert.match(html, /&lt;b(?:>|&gt;)Supplied title&lt;\/b(?:>|&gt;)/);
