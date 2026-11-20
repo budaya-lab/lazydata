@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { validateMetadata } from '@lazydata/validator';
+import { validateMetadata } from '@penjaga/validator';
 import policy from '../dataset.config.json' with { type: 'json' };
 const data = {
   name: 'example',

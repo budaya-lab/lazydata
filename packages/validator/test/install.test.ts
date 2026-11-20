@@ -26,6 +26,10 @@ test('semver tarball installs by URL and reinstalls from a frozen lockfile witho
   try {
     let archive = process.env.VALIDATOR_ARCHIVE;
     let version = process.env.VALIDATOR_VERSION;
+    const packageName = process.env.VALIDATOR_PACKAGE ?? '@penjaga/validator';
+    assert.ok(packageName === '@penjaga/validator' || packageName === '@lazydata/validator', 'unsupported release package identity');
+    const scope = packageName.split('/')[0];
+    const prefix = scope.slice(1);
     assert.equal(Boolean(archive), Boolean(version), 'supply both archive and version, or neither');
 
     if (!archive) {
@@ -41,7 +45,7 @@ test('semver tarball installs by URL and reinstalls from a frozen lockfile witho
     assert.ok(typeof version === 'string');
     assert.ok(typeof archive === 'string');
     assert.match(version, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
-    const filename = `lazydata-validator-${version}.tgz`;
+    const filename = `${prefix}-validator-${version}.tgz`;
     assert.equal(basename(archive), filename);
     const bytes = readFileSync(resolve(archive));
     const requests: (string | undefined)[] = [];
@@ -76,16 +80,16 @@ test('semver tarball installs by URL and reinstalls from a frozen lockfile witho
       cwd: consumer, timeout: 30_000,
     });
 
-    const installed = join(consumer, 'node_modules', '@lazydata', 'validator');
+    const installed = join(consumer, 'node_modules', scope, 'validator');
     const manifest = JSON.parse(readFileSync(join(installed, 'package.json'), 'utf8'));
-    assert.equal(manifest.name, '@lazydata/validator');
+    assert.equal(manifest.name, packageName);
     assert.equal(manifest.version, version);
     assert.deepEqual(manifest.dependencies ?? {}, {});
     assert.ok(!existsSync(join(consumer, 'node_modules', 'typescript')));
     assert.ok(!existsSync(join(installed, 'src')));
     assert.ok(existsSync(join(installed, 'dist', 'index.d.ts')));
     const dependency = JSON.parse(readFileSync(join(consumer, 'package.json'), 'utf8')).dependencies;
-    assert.equal(dependency['@lazydata/validator'], url);
+    assert.equal(dependency[packageName], url);
 
     const dataset = join(consumer, 'dataset');
     mkdirSync(dataset);
@@ -98,16 +102,16 @@ test('semver tarball installs by URL and reinstalls from a frozen lockfile witho
     writeFileSync(join(consumer, 'consumer.mjs'), `
       import assert from 'node:assert/strict';
       import { readFileSync } from 'node:fs';
-      import { validateMetadata, validatePolicy } from '@lazydata/validator';
-      import { validateDataPackage } from '@lazydata/validator/repository';
-      import policy from '@lazydata/validator/policy' with { type: 'json' };
+      import { validateMetadata, validatePolicy } from '${packageName}';
+      import { validateDataPackage } from '${packageName}/repository';
+      import policy from '${packageName}/policy' with { type: 'json' };
       const data = JSON.parse(readFileSync('dataset/datapackage.json', 'utf8'));
       assert.deepEqual(validatePolicy(policy), []);
       assert.deepEqual(validateMetadata(data, policy), []);
       assert.deepEqual(validateDataPackage(data, 'dataset'), []);
     `);
 
-    const command = join(consumer, 'node_modules', '.bin', 'lazydata-validate');
+    const command = join(consumer, 'node_modules', '.bin', `${prefix}-validate`);
     await run(process.execPath, ['consumer.mjs'], { cwd: consumer });
     const first = await run(command, [dataset], { cwd: consumer });
     assert.equal(first.stdout, 'datapackage.json: valid\n');

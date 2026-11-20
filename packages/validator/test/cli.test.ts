@@ -31,8 +31,8 @@ test('CLI accepts an explicit dataset root without running dataset-local scripts
 });
 
 test('CLI shows help and rejects unsupported options or extra dataset roots', () => {
-  assert.match(run(['--help']), /Usage: lazydata-validate/);
-  assert.match(run(['-h']), /Usage: lazydata-validate/);
+  assert.match(run(['--help']), /Usage: penjaga-validate/);
+  assert.match(run(['-h']), /Usage: penjaga-validate/);
 
   for (const args of [['--unknown'], ['first', 'second']]) {
     assert.throws(() => run(args), (error) => {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import policy from '@lazydata/validator/policy' with { type: 'json' };
+import policy from '@penjaga/validator/policy' with { type: 'json' };
 import { resourceDefaults, changeResourcePath, resourceFieldEdits, resourceFormModel, resourceDraftIssues } from '../src/lib/resource-fields.ts';
 import { MetadataDraft } from '../src/lib/metadata-draft.ts';
 import { draftIssues } from '../src/lib/draft-checks.ts';

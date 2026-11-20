@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { validatePolicy } from '@lazydata/validator';
+import { validatePolicy } from '@penjaga/validator';
 import policy from '../dataset.config.json' with { type: 'json' };
 
 test('accepts the policy without changing it', () => {

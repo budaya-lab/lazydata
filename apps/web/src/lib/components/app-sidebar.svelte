@@ -23,7 +23,7 @@
         >
             <img src={asset("favicon.png")} alt="" class="size-9" />
             <span class="flex flex-col gap-0.5">
-                <span class="font-heading text-xl font-semibold">Lazydata</span>
+                <span class="font-heading text-xl font-semibold">Penjaga</span>
                 <span class="text-xs text-muted-foreground"
                     >Dataset Steward</span
                 >

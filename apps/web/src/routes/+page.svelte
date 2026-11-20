@@ -35,7 +35,7 @@
 </script>
 
 <svelte:head>
-    <title>Datasets — Lazydata</title>
+    <title>Datasets — Penjaga</title>
 </svelte:head>
 
 <section aria-labelledby="datasets-heading" class="flex min-w-0 flex-col gap-4">

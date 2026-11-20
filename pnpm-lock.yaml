@@ -17,7 +17,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@lazydata/validator':
+      '@penjaga/validator':
         specifier: workspace:*
         version: link:../../packages/validator
       jsonc-parser:

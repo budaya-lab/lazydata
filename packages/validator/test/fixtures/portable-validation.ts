@@ -27,7 +27,7 @@ await entry.evaluate();
 
 const policy = JSON.parse(readFileSync(new URL('../../dataset.config.json', import.meta.url), 'utf8'));
 const data = JSON.parse(readFileSync(new URL('./datapackage.json', import.meta.url), 'utf8'));
-const api = entry.namespace as typeof import('@lazydata/validator');
+const api = entry.namespace as typeof import('@penjaga/validator');
 
 process.stdout.write(JSON.stringify({
   errors: api.validateMetadata(data, policy),

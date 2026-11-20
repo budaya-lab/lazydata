@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { validateMetadata } from '@lazydata/validator';
-import policy from '@lazydata/validator/policy' with { type: 'json' };
+import { validateMetadata } from '@penjaga/validator';
+import policy from '@penjaga/validator/policy' with { type: 'json' };
 import { inspectMetadata } from '../src/lib/server/metadata.ts';
 
 const descriptor = {

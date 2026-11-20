@@ -1,6 +1,8 @@
-# Lazydata
+# Penjaga
 
 Read `README.md`, `docs/architecture.md` and `packages/validator/README.md` first.
+
+- Current identity: `budaya-lab/penjaga`, `@penjaga/validator`, `@penjaga/steward`, `penjaga-validate`, and local `penjaga/`. Rename task notes live outside this repository in `../tasks/penjaga-rename/compatibility.md`; do not add task records to repository docs. Preserve historical archives, exact template fixtures, legacy generated README recognition and consumer pins. The legacy validation workflow name/file remains required; do not rename it implicitly.
 
 - Use pnpm 12.x at this workspace root and in CI. Keep its lockfile; do not require an exact pnpm patch version.
 - Target Node.js 24 LTS; keep CI, engine requirements, Node types and docs aligned.
