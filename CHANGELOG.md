@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.0](https://github.com/budaya-lab/penjaga/compare/v1.1.0...v2.0.0) (2026-11-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* new packages use @penjaga/validator and the penjaga-validate CLI instead of the former package scope and command.
+
+### Features
+
+* **steward:** generate dataset readmes on save ([ea1e508](https://github.com/budaya-lab/penjaga/commit/ea1e508d008a14c6d91a638666ce36ad4cc60bc8))
+* **steward:** generate dataset readmes on save ([f2d7fb3](https://github.com/budaya-lab/penjaga/commit/f2d7fb3cfb40855be14cea3cb7f7b38aa6b2a810))
+
+
+### Code Refactoring
+
+* rename project to penjaga ([d1c2e2f](https://github.com/budaya-lab/penjaga/commit/d1c2e2fd84451abae80bb76eb09cf7b18f057e1d))
+
 ## [1.1.0](https://github.com/budaya-lab/lazydata/compare/v1.0.1...v1.1.0) (2026-11-20)
 
 
