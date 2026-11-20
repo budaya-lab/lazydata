@@ -3,9 +3,18 @@ import { test } from 'node:test';
 import config from '../release-please-config.json' with { type: 'json' };
 import workspace from '../package.json' with { type: 'json' };
 import validator from '../packages/validator/package.json' with { type: 'json' };
+import steward from '../apps/web/package.json' with { type: 'json' };
 import released from '../.release-please-manifest.json' with { type: 'json' };
 
 const manifest: Record<string, string> = released;
+
+test('current workspace, validator and Steward use the Penjaga identity', () => {
+  assert.equal(workspace.name, 'penjaga');
+  assert.equal(validator.name, '@penjaga/validator');
+  assert.deepEqual(validator.bin, { 'penjaga-validate': './dist/cli.js' });
+  assert.equal(steward.name, '@penjaga/steward');
+  assert.deepEqual(Object.keys(steward.dependencies).filter((name) => name.endsWith('/validator')), ['@penjaga/validator']);
+});
 
 test('one repository release updates both package versions', () => {
   const release = config.packages['.'];

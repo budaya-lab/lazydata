@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { validateDataPackage } from '@lazydata/validator/repository';
+import { validateDataPackage } from '@penjaga/validator/repository';
 import policy from '../dataset.config.json' with { type: 'json' };
 import { assertCommandFailure } from './helpers.ts';
 

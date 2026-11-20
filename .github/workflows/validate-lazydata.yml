@@ -30,7 +30,7 @@ jobs:
         run: pnpm test
       - name: Check and test read-only Steward discovery
         run: |
-          pnpm --filter @lazydata/steward check
-          pnpm --filter @lazydata/steward test
+          pnpm --filter @penjaga/steward check
+          pnpm --filter @penjaga/steward test
       - name: Audit dependencies
         run: pnpm audit --audit-level=high

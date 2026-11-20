@@ -1,5 +1,5 @@
-import { validateMetadata } from '@lazydata/validator';
-import policy from '@lazydata/validator/policy' with { type: 'json' };
+import { validateMetadata } from '@penjaga/validator';
+import policy from '@penjaga/validator/policy' with { type: 'json' };
 
 export const stageOptions = Object.entries(policy.stages).map(([value, label]) => ({ value, label }));
 

@@ -67,16 +67,23 @@ jobs:
       - name: Pack the compiled validator
         run: |
           mkdir -p "$RUNNER_TEMP/validator-artifact"
-          pnpm --filter @lazydata/validator pack --pack-destination "$RUNNER_TEMP/validator-artifact"
+          pnpm --filter './packages/validator' pack --pack-destination "$RUNNER_TEMP/validator-artifact"
+          package_name=$(node -p 'require("./packages/validator/package.json").name')
+          case "$package_name" in
+            @penjaga/validator) prefix=penjaga ;;
+            @lazydata/validator) prefix=lazydata ;;
+            *) echo 'Unsupported validator package identity' >&2; exit 1 ;;
+          esac
+          echo "VALIDATOR_PACKAGE=$package_name" >> "$GITHUB_ENV"
+          echo "VALIDATOR_VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
+          echo "VALIDATOR_ARCHIVE=$RUNNER_TEMP/validator-artifact/$prefix-validator-${RELEASE_TAG#v}.tgz" >> "$GITHUB_ENV"
       - name: Verify installation of the exact release archive
         run: |
-          export VALIDATOR_VERSION="${RELEASE_TAG#v}"
-          export VALIDATOR_ARCHIVE="$RUNNER_TEMP/validator-artifact/lazydata-validator-$VALIDATOR_VERSION.tgz"
           node --test "$RUNNER_TEMP/validator-install.test.ts"
       - name: Upload without replacing an existing semver asset
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "$RELEASE_TAG" \
-            "$RUNNER_TEMP/validator-artifact/lazydata-validator-${RELEASE_TAG#v}.tgz" \
+            "$VALIDATOR_ARCHIVE" \
             --repo "$GITHUB_REPOSITORY"

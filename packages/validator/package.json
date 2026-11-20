@@ -20,7 +20,7 @@
     "./policy": "./dataset.config.json"
   },
   "bin": {
-    "lazydata-validate": "./dist/cli.js"
+    "penjaga-validate": "./dist/cli.js"
   },
   "files": [
     "dist",

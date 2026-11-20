@@ -8,11 +8,11 @@
     "pnpm": ">=12 <13"
   },
   "scripts": {
-    "build": "pnpm --filter @lazydata/validator build",
-    "lint": "pnpm --filter @lazydata/steward lint",
-    "typecheck": "pnpm --filter @lazydata/validator typecheck",
-    "test": "node --test scripts/*.test.ts && pnpm --filter @lazydata/validator test",
-    "pack:validator": "pnpm build && pnpm --filter @lazydata/validator pack"
+    "build": "pnpm --filter @penjaga/validator build",
+    "lint": "pnpm --filter @penjaga/steward lint",
+    "typecheck": "pnpm --filter @penjaga/validator typecheck",
+    "test": "node --test scripts/*.test.ts && pnpm --filter @penjaga/validator test",
+    "pack:validator": "pnpm build && pnpm --filter @penjaga/validator pack"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

@@ -6,8 +6,8 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { parseBuckets } from '@lazydata/validator';
-import { validateDataPackage } from '@lazydata/validator/repository';
+import { parseBuckets } from '@penjaga/validator';
+import { validateDataPackage } from '@penjaga/validator/repository';
 import { assertCommandFailure } from './helpers.ts';
 
 const validCases: [string, string, Record<string, string | number>[]][] = [

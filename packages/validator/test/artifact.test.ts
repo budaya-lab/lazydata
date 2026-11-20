@@ -20,7 +20,7 @@ const source = fileURLToPath(new URL('../', import.meta.url));
 test('packed API, types, policy and CLI work without workspace sources or runtime dependencies', () => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'validator-artifact-')));
   const archives = join(root, 'archives');
-  const installed = join(root, 'node_modules', '@lazydata', 'validator');
+  const installed = join(root, 'node_modules', '@penjaga', 'validator');
   const dataset = join(root, 'dataset');
 
   try {
@@ -38,9 +38,9 @@ test('packed API, types, policy and CLI work without workspace sources or runtim
     writeFileSync(join(dataset, 'input.csv'), 'value\nexample\n');
     writeFileSync(join(root, 'consumer.mjs'), `
       import { readFileSync } from 'node:fs';
-      import { validateMetadata, validatePolicy, getStage, stageLabel, parseBuckets } from '@lazydata/validator';
-      import { validateDataPackage } from '@lazydata/validator/repository';
-      import policy from '@lazydata/validator/policy' with { type: 'json' };
+      import { validateMetadata, validatePolicy, getStage, stageLabel, parseBuckets } from '@penjaga/validator';
+      import { validateDataPackage } from '@penjaga/validator/repository';
+      import policy from '@penjaga/validator/policy' with { type: 'json' };
 
       const data = JSON.parse(readFileSync('dataset/datapackage.json', 'utf8'));
       console.log(JSON.stringify({
@@ -64,10 +64,10 @@ test('packed API, types, policy and CLI work without workspace sources or runtim
     });
 
     writeFileSync(join(root, 'consumer.mts'), `
-      import { validateMetadata, parseBuckets } from '@lazydata/validator';
-      import type { DatasetPolicy, Buckets } from '@lazydata/validator';
-      import { validateDataPackage } from '@lazydata/validator/repository';
-      import policy from '@lazydata/validator/policy' with { type: 'json' };
+      import { validateMetadata, parseBuckets } from '@penjaga/validator';
+      import type { DatasetPolicy, Buckets } from '@penjaga/validator';
+      import { validateDataPackage } from '@penjaga/validator/repository';
+      import policy from '@penjaga/validator/policy' with { type: 'json' };
 
       const errors: string[] = validateMetadata({ name: 'example' }, policy);
       const local: string[] = validateDataPackage(null, '.');
@@ -91,8 +91,8 @@ test('packed API, types, policy and CLI work without workspace sources or runtim
     execFileSync('pnpm', ['exec', 'tsc', '-p', join(root, 'tsconfig.json')], { cwd: source, stdio: 'pipe' });
 
     const manifest = JSON.parse(readFileSync(join(installed, 'package.json'), 'utf8'));
-    const command = join(root, 'lazydata-validate');
-    symlinkSync(join(installed, manifest.bin['lazydata-validate']), command);
+    const command = join(root, 'penjaga-validate');
+    symlinkSync(join(installed, manifest.bin['penjaga-validate']), command);
 
     assert.equal(execFileSync(command, [dataset], { cwd: root, encoding: 'utf8' }), 'datapackage.json: valid\n');
 

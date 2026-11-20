@@ -3,10 +3,10 @@
 ## Package boundaries
 
 ```text
-Portable consumers ──> @lazydata/validator
+Portable consumers ──> @penjaga/validator
                         metadata / policy / stages / bucket parser
 
-Node tools ───────────> @lazydata/validator/repository
+Node tools ───────────> @penjaga/validator/repository
                         portable checks + bundled policy + filesystem checks
 
 CLI ─────────────────> repository adapter
@@ -75,7 +75,7 @@ separate warning with metadata Save success. The writes are not a two-file
 transaction. Generated READMEs start with title, name/Created-date subtitle,
 badges and escaped description paragraphs. Contributors/sources use lists;
 resources/buckets keep comparison tables. Version joins the badge row when
-supplied. The viewer suppresses only Lazydata's known bookkeeping markers and
+supplied. The viewer suppresses Penjaga's known bookkeeping markers (and the legacy generated header) and
 honors Markdown's hidden tight-list paragraph tokens. Portable validation remains read-only. See
 [Save usage](../apps/web/README.md#save).
 
