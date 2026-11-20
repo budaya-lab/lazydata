@@ -591,7 +591,69 @@ for (const mode of ['dev', 'built'] as const) {
     assert.deepEqual(await snapshot(root), before);
   });
 
-  test(`${mode}: saves only the selected descriptor through same-origin JSON POST`, async (t) => {
+  test(`${mode}: Save generates README from saved metadata and reports README failures separately`, async (t) => {
+    const root = await fixture(t);
+    const directory = join(root, 'ds-readme-save');
+    await fs.mkdir(directory);
+    const path = join(directory, 'README.md');
+    await fs.writeFile(join(directory, 'datapackage.json'), '{}');
+    await fs.writeFile(path, '# Old\n<!-- notes -->\n\nKeep my notes.\n');
+    await fs.writeFile(join(directory, 'buckets.csv'), 'category,count\nBooks,7\n');
+    const { url, logs } = await serve(t, mode, root);
+    const body = JSON.stringify({ name: 'example', title: 'Saved README', description: 'First paragraph.\n\nSecond paragraph.',
+      created: '2026-01-01T23:45:00-03:30', version: '1.2.3',
+      keywords: ['task:example', 'project:example', 'stage:master'],
+      contributors: [{ title: 'A person', roles: ['author'] }],
+      sources: [{ title: 'Original', path: 'https://example.org/source' }],
+      resources: [{ name: 'input', title: 'Input', path: 'missing.csv', count: 42 }],
+    });
+    const save = (text = body) => fetch(`${url}/datasets/ds-readme-save/save`, { method: 'POST',
+      headers: { origin: url, 'content-type': 'application/json' }, body: text });
+    const response = await save();
+    assert.equal(response.status, 200, logs());
+    const result = await response.json();
+    assert.equal(result.status, 'saved');
+    assert.deepEqual(result.issues, []);
+    assert.equal(result.readme, 'updated');
+    const readme = await fs.readFile(path, 'utf8');
+    assert.match(readme, /42 rows/);
+    assert.match(readme, /Books \| 7/);
+    assert.ok(readme.endsWith('<!-- notes -->\n\nKeep my notes.\n'));
+    assert.equal(await fs.readFile(join(directory, 'datapackage.json'), 'utf8'), body);
+    const html = await (await fetch(`${url}/datasets/ds-readme-save`)).text();
+    assert.match(html, /Saved README/);
+    assert.match(html, /42 rows/);
+    assert.match(html, /Keep my notes/);
+    const article = html.match(/<article\b[^>]*>[\s\S]*?<\/article>/);
+    assert.ok(article);
+    assert.doesNotMatch(article[0], /<img\b|https:\/\/img\.shields\.io/);
+    const cleanArticle = article[0].replace(/<!--[\s\S]*?-->/g, '');
+    assert.match(cleanArticle, /<em>example · 2026-01-01<\/em>/);
+    assert.match(cleanArticle, /<p>First paragraph\.<\/p>/);
+    assert.match(cleanArticle, /<p>Second paragraph\.<\/p>/);
+    assert.match(cleanArticle, /<li>A person — author<\/li>/);
+    assert.equal([...cleanArticle.matchAll(/<table\b/g)].length, 2, 'only resources and buckets use tables');
+    assert.equal([...article[0].matchAll(/role="img"/g)].length, 4, 'four local badge graphics');
+    for (const label of ['task: example', 'project: example', 'stage: master', 'version: 1.2.3']) {
+      assert.ok(article[0].includes(`aria-label="${label}"`), label);
+    }
+    assert.equal((await (await save()).json()).readme, 'unchanged');
+    await fs.writeFile(join(directory, 'buckets.csv'), 'invalid CSV');
+    const failed = await save();
+    assert.equal(failed.status, 200, logs());
+    const warning = await failed.json();
+    assert.equal(warning.status, 'saved');
+    assert.equal(warning.readme, 'failed');
+    assert.match(warning.message, /Warning: metadata saved/);
+    assert.ok(!JSON.stringify(warning).includes(root));
+    assert.equal(await fs.readFile(path, 'utf8'), readme);
+    const skipped = await (await save('{"title":"Incomplete"}')).json();
+    assert.equal(skipped.readme, 'skipped');
+    assert.ok(skipped.issues.length);
+    assert.equal(await fs.readFile(path, 'utf8'), readme);
+  });
+
+  test(`${mode}: saves incomplete metadata only through same-origin JSON POST`, async (t) => {
     const root = await fixture(t);
     const directory = join(root, 'ds-save %');
     await fs.mkdir(directory);
@@ -622,11 +684,14 @@ for (const mode of ['dev', 'built'] as const) {
     assert.equal(response.status, 200, logs());
     const result = await response.json();
     assert.equal(result.status, 'saved');
+    assert.equal(result.readme, 'skipped');
     assert.ok(result.issues.length, 'policy issues are reported, not a block on saving incomplete metadata');
     assert.equal(response.headers.get('cache-control'), 'no-store');
     assert.equal(await fs.readFile(path, 'utf8'), body);
-    const raw = await (await fetch(`${url}/datasets/${encodeURIComponent('ds-save %')}?view=datapackage`)).text();
-    assert.match(raw, /Saved 中文/);
+    const rawResponse = await fetch(`${url}/datasets/${encodeURIComponent('ds-save %')}?view=datapackage`);
+    assert.equal(rawResponse.status, 200, logs());
+    const raw = await rawResponse.text();
+    assert.match(raw, /Saved 中文/, logs());
     assert.equal(await fs.readFile(join(directory, 'README.md'), 'utf8'), '# Keep README');
     assert.deepEqual((await fs.readdir(directory)).sort(), ['README.md', 'datapackage.json']);
     const missing = await fetch(`${url}/datasets/ds-missing/save`, { method: 'POST', headers, body });

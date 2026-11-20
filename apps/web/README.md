@@ -9,13 +9,17 @@ supports search and metadata-status filters.
 
 - **README** renders Markdown as escaped text and allowlisted elements. Embedded
   HTML and images are disabled. Only credential-free HTTPS links are clickable.
+  Task/project/stage/version Shields badges render as local app badges, without fetching
+  their images. Other images remain text-only.
   Exact matches to reviewed template README fingerprints are labelled; this does
-  not prove dataset origin or quality.
+  not prove dataset origin or quality. Opening the README tab requests fresh
+  server data without a full-page reload, so saved changes appear immediately.
 - **Metadata** provides local form controls for Overview, Keywords, Resources,
   Sources, Licenses and Contributors, plus shared metadata checks. Edits update
   one in-memory object. They appear in the read-only `datapackage.json` preview
   after Metadata is opened and survive switching between the views. **Save
-  changes** writes the draft to the dataset's existing descriptor. Reset remains
+  changes** writes the draft to the dataset's existing descriptor and generates
+  its README when metadata checks pass. Reset remains
   disabled; direct JSON editing and dataset creation are not implemented.
 - **datapackage.json** displays the saved JSON as escaped text unless Metadata
   has been opened in the current page session, in which case it previews the
@@ -57,8 +61,25 @@ remain unsaved until the next Save.
 This first version assumes one user and no external file changes. There is no
 revision/conflict detection: Save overwrites the descriptor currently on disk.
 Basic file permissions and ownership are retained, but ACLs and extended
-attributes are not preserved. Only `datapackage.json` is written, never README or
-resources.
+attributes are not preserved. After the descriptor is saved, passing metadata
+checks trigger `README.md` generation. The README includes supplied metadata,
+existing resource counts and optional `buckets.csv` (label plus `count`, at most
+1 MB). Save never scans resources, recalculates counts or changes bucket files.
+The generated layout is title, name/Created-date subtitle, badges (including
+Version when supplied), then description paragraphs. Contributors and sources
+use lists; only resources and buckets use tables. The subtitle shows the supplied
+Created calendar date without timezone conversion; missing dates/versions are
+omitted. The viewer hides Lazydata's generated header and notes delimiter, not
+arbitrary HTML, and renders tight lists without extra paragraph wrappers.
+
+Text below `<!-- notes -->` is kept exactly. An unmarked handwritten README is
+moved below that marker; only exact reviewed template bytes are discarded.
+Missing READMEs are created privately (mode `0600`). Existing READMEs require a
+regular, single-link UTF-8 file, and retain basic permissions and ownership.
+Generation is bounded to 5 MiB; identical output is not rewritten. Metadata issues
+skip generation. Unreadable/invalid buckets or README write failures leave the
+README untouched and show a warning without undoing a successful metadata Save.
+The two files are replaced separately, not as one transaction.
 
 ## Run locally
 
@@ -85,7 +106,7 @@ filenames (`README.md` and `datapackage.json`). They are bounded to 5 MiB and
 require regular, single-link UTF-8 files. The separate resource counter reads only
 safe selected paths and has byte, traversal, depth and time limits. These checks
 reduce risk but do not sandbox hostile concurrent filesystem changes. Only an
-explicit Save writes the descriptor.
+explicit Save writes the descriptor and, when checks pass, its generated README.
 
 ## Checks
 

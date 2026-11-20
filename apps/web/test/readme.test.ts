@@ -8,7 +8,7 @@ import type { ReadmeNode } from '../src/lib/readme.ts';
 import { DatasetNotFoundError, MAX_DATASET_TEXT_BYTES } from '../src/lib/server/dataset-text.ts';
 
 function flattened(nodes: ReadmeNode[]): ReadmeNode[] {
-  return nodes.flatMap((node) => node.tag === 'text' ? [node] : [node, ...flattened(node.children)]);
+  return nodes.flatMap((node) => node.tag === 'text' || node.tag === 'badge' ? [node] : [node, ...flattened(node.children)]);
 }
 
 async function fixture(t: TestContext) {
@@ -40,9 +40,42 @@ test('disables embedded HTML, automatic image loads and executable Markdown whil
   assert.ok(nodes.some(({ tag }) => tag === 'pre'));
 });
 
+test('renders task/project/stage/version Shields badges locally while keeping other images inert', () => {
+  const nodes = flattened(renderReadme([
+    '![task: catalogue](https://img.shields.io/badge/task-catalogue-green)',
+    '![project: archive](https://img.shields.io/badge/project-archive-blue)',
+    '![stage: master](https://img.shields.io/badge/stage-master-purple)',
+    '![version: 1.2.3](https://img.shields.io/badge/version-1.2.3-blue)',
+    '![task: external](https://tracker.example/badge/task-external-green)',
+    '![task: query](https://img.shields.io/badge/task-query-green?url=https://tracker.example)',
+    '![project: mismatch](https://img.shields.io/badge/task-mismatch-green)',
+    '![Image caption](https://tracker.example/pixel)',
+  ].join('\n')).nodes);
+  const badges = nodes.filter((node) => node.tag === 'badge');
+  assert.deepEqual(badges, [
+    { tag: 'badge', text: 'task: catalogue' },
+    { tag: 'badge', text: 'project: archive' },
+    { tag: 'badge', text: 'stage: master' },
+    { tag: 'badge', text: 'version: 1.2.3' },
+  ]);
+  assert.ok(!JSON.stringify(nodes).includes('https://'), 'no image URLs reach the client');
+  const text = nodes.flatMap((node) => node.tag === 'text' ? [node.text] : []).join(' ');
+  assert.match(text, /task: external/);
+  assert.match(text, /task: query/);
+  assert.match(text, /project: mismatch/);
+  assert.match(text, /Image caption/);
+});
+
+test('does not hide arbitrary comments or notes markers in handwritten READMEs', () => {
+  const nodes = flattened(renderReadme('# Handwritten\n\n<!-- notes -->\n\n<!-- custom comment -->').nodes);
+  const text = nodes.flatMap((node) => node.tag === 'text' ? [node.text] : []).join(' ');
+  assert.ok(text.includes('<!-- notes -->'));
+  assert.ok(text.includes('<!-- custom comment -->'));
+});
+
 test('allows only credential-free HTTPS navigation and does not map local resource links', () => {
   const nodes = flattened(renderReadme('[Public](https://example.org/docs) [Local](data/input.csv) [Outside](../other/README.md) [HTTP](http://example.org) [Credentials](https://user:password@example.org) [Code](javascript:alert%281%29) [Data](data:text/html,test)').nodes);
-  const hrefs = nodes.flatMap((node) => node.tag !== 'text' && node.href ? [node.href] : []);
+  const hrefs = nodes.flatMap((node) => node.tag !== 'text' && node.tag !== 'badge' && node.href ? [node.href] : []);
   assert.deepEqual(hrefs, ['https://example.org/docs']);
   const text = nodes.flatMap((node) => node.tag === 'text' ? [node.text] : []).join(' ');
   for (const label of ['Local', 'Outside', 'HTTP', 'Credentials']) assert.ok(text.includes(label));

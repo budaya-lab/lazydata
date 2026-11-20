@@ -101,6 +101,7 @@
             dirty = draft.dirty;
             ondraft(datasetId, syncError);
             saveMessage = dirty || syncError ? 'Saved submitted changes. Newer edits are still unsaved.' : 'Saved.';
+            if ('message' in result && typeof result.message === 'string') saveMessage += ` ${result.message}`;
         } catch (cause) {
             console.error('Metadata Save request failed.', cause);
             if (!disposed) saveError = 'Save could not be confirmed. Your draft is retained. Retry Save or reload to check the file.';

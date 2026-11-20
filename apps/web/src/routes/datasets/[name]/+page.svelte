@@ -29,10 +29,12 @@
     function updateDraft(name: string, error: string) {
         session = updateMetadataSession(session, name, error);
     }
-    async function switchView(event: MouseEvent, target: 'metadata' | 'datapackage') {
+    async function switchView(event: MouseEvent, target: 'readme' | 'metadata' | 'datapackage') {
         if (!active || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
-        await goto(resolve(`/datasets/[name]?view=${target}`, { name: encodeURIComponent(data.name) }), { shallow: true, reset: true });
+        const params = { name: encodeURIComponent(data.name) };
+        if (target === 'readme') await goto(resolve('/datasets/[name]', params), { refreshAll: true, reset: true });
+        else await goto(resolve(`/datasets/[name]?view=${target}`, params), { shallow: true, reset: true });
     }
     beforeNavigate((navigation) => {
         if (!session?.draft || (!session.draft.dirty && !session.error)) return;
@@ -55,6 +57,7 @@
             href={datasetUrl}
             variant={view === "readme" ? "secondary" : "ghost"}
             aria-current={view === "readme" ? "page" : undefined}
+            onclick={(event) => switchView(event, 'readme')}
             >README</Button
         >
         <Button

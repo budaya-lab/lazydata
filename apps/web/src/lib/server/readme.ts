@@ -3,6 +3,7 @@ import MarkdownIt, { type Token } from 'markdown-it';
 import { readmeTags, type ReadmeNode } from '../readme.ts';
 import { DatasetNotFoundError, DatasetTextError, readDatasetText } from './dataset-text.ts';
 import { templateReadmes } from './template-readmes.ts';
+import { generatedComment, notesMarker } from './readme-generation.ts';
 
 const markdown = new MarkdownIt({ html: false, linkify: false, typographer: false, maxNesting: 20 });
 
@@ -21,12 +22,19 @@ function readmeNodes(tokens: Token[]): ReadmeNode[] {
   const root: ReadmeNode[] = [];
   const stack = [root];
   for (const token of tokens) {
+    if (token.hidden) continue;
     const children = stack[stack.length - 1];
     if (token.type === 'inline') {
       if (token.children) {
         for (const node of readmeNodes(token.children)) children.push(node);
       }
-    } else if (['text', 'html_inline', 'html_block', 'image'].includes(token.type)) {
+    } else if (token.type === 'image') {
+      const text = token.children?.map((child) => child.content).join('') ?? token.content;
+      const source = token.attrGet('src');
+      const badge = typeof source === 'string'
+        ? /^https:\/\/img\.shields\.io\/badge\/(task|project|stage|version)-[^/?#]+-(?:green|blue|purple)$/.exec(source) : null;
+      children.push({ tag: badge && text.startsWith(`${badge[1]}: `) ? 'badge' : 'text', text });
+    } else if (['text', 'html_inline', 'html_block'].includes(token.type)) {
       children.push({ tag: 'text', text: token.content });
     } else if (token.type === 'softbreak') {
       children.push({ tag: 'text', text: '\n' });
@@ -60,8 +68,9 @@ function readmeNodes(tokens: Token[]): ReadmeNode[] {
 
 export function renderReadme(text: string): { nodes: ReadmeNode[]; template: boolean; empty: boolean } {
   const digest = createHash('sha256').update(text, 'utf8').digest('hex');
+  const body = text.startsWith(generatedComment) ? text.slice(generatedComment.length).replace(notesMarker, '') : text;
   return {
-    nodes: readmeNodes(markdown.parse(text, {})),
+    nodes: readmeNodes(markdown.parse(body, {})),
     template: templateReadmes.some(({ sha256 }) => sha256 === digest),
     empty: !text.trim(),
   };

@@ -10,8 +10,8 @@ export const POST: RequestHandler = async ({ request, params, url }) => {
     return json({ status: 'error', message: 'Supply application/json.' }, { status: 415 });
   }
   try {
-    const issues = await saveMetadata(process.env.DATASET_ROOT, params.name, await readSaveText(request));
-    return json({ status: 'saved', issues });
+    const result = await saveMetadata(process.env.DATASET_ROOT, params.name, await readSaveText(request));
+    return json({ status: 'saved', ...result });
   } catch (cause) {
     if (cause instanceof Error && 'status' in cause && cause.status === 413) return json({ status: 'error', message: 'Metadata exceeds the 5 MiB saving limit.' }, { status: 413 });
     if (cause instanceof MetadataDraftError) return json({ status: 'error', message: cause.message }, { status: 400 });
