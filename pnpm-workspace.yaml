@@ -3,3 +3,5 @@ packages:
   - apps/*
 
 ignoreScripts: true
+allowBuilds:
+  esbuild: true

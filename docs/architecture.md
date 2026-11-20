@@ -1,45 +1,84 @@
-# Validation boundaries
+# Architecture
+
+## Package boundaries
 
 ```text
 Portable consumers ──> @lazydata/validator
-                        policy / metadata / stages / bucket parser
+                        metadata / policy / stages / bucket parser
 
-Local tools ─────────> @lazydata/validator/repository
+Node tools ───────────> @lazydata/validator/repository
                         portable checks + bundled policy + filesystem checks
 
-lazydata-validate ────> repository adapter
-
-Future SvelteKit UI ─> portable checks
-Future server code ─> repository adapter (never shipped to the browser)
+CLI ─────────────────> repository adapter
+Steward checks ──────> portable metadata checks
+Steward resource UI ─> separate bounded read-only counter
 ```
 
-The validator owns the common rules and matched default policy. It accepts
-untrusted input and returns error strings. Invalid policy and invalid bucket
-contents throw; repository validation returns descriptor/filesystem issues but
-throws when its bundled policy cannot be loaded or validated.
+The validator owns shared rules and matched policy. Portable APIs perform no I/O
+and accept untrusted values. The Node adapter loads the package's bundled policy
+and checks referenced paths and optional root buckets. Neither entry point
+modifies files, runs dataset code, counts resources or establishes publication
+authority. API details and release procedures are in the
+[validator reference](reference.md).
 
-The portable entry point performs no I/O. Callers supply policy loaded from the
-same package. Catalogue stage display permits a missing stage; full dataset
-validation requires the configured task, project and stage keywords.
+## Steward data flow
 
-The Node adapter loads policy relative to its installed package, never from the
-dataset root. It verifies referenced paths and optional root buckets without
-counting data, rewriting files or running dataset-local code. Validation is not
-a sandbox against concurrent filesystem changes and does not authorize later reads
-or writes. Future application transactions need their own safety checks.
+The SvelteKit app runs locally against an explicit `DATASET_ROOT` parent. Server
+loads discover immediate `ds-*` directories. The dashboard returns folder names,
+metadata status and allowlisted summary values, not descriptor text or paths.
+Dataset detail defaults to README; Metadata and `datapackage.json` are separate
+views. The reader accepts only discovered datasets and the fixed filenames
+`README.md` and `datapackage.json`.
 
-Build with TypeScript's NodeNext modules and emit JavaScript plus declarations.
-No bundler, test framework or runtime dependency is needed. GitHub release `.tgz`
-assets contain compiled modules, declarations, policy and package documentation.
-The publisher builds the tagged main-history commit and verifies the exact
-archive through a fresh URL install and frozen offline reinstall before upload.
-Consumers pin the stable semver URL and commit their lockfile. No separate
-checksum files or registry publishing are used; normal package manager integrity
-is unchanged. Packages remain private and their names do not claim a registry
-namespace. Consumers replace duplicated checks, not add this validator alongside
-competing rules.
+README Markdown is parsed on the server into an allowlisted tree. Svelte renders
+escaped text and elements; raw HTML and images are disabled, and only credential-
+free HTTPS links are clickable. Reviewed template fingerprints identify exact
+README matches only; they do not establish provenance.
 
-Sources: [TypeScript library compiler options](https://www.typescriptlang.org/docs/handbook/modules/guides/choosing-compiler-options.html#im-writing-a-library),
-[Node.js 24 package exports](https://nodejs.org/docs/latest-v24.x/api/packages.html#package-entry-points),
-[pnpm workspaces](https://pnpm.io/workspaces), and
-[pnpm settings](https://pnpm.io/settings).
+Metadata checks use the portable validator and matched policy. They do not read
+resource files or infer, migrate or normalize metadata. The Metadata form edits
+one page-scoped working object; the JSON preview and checks use its
+`JSON.stringify` output. Unknown properties and metadata on surviving rows are
+preserved. Strict admission rejects malformed or duplicate-key JSON and unsafe
+number conversions. Formatting and equivalent number notation may normalize.
+
+After Metadata has opened, shallow Metadata/JSON navigation retains the form,
+draft and loaded revision. Failed or pending inputs remain visible and do not
+silently replace the last representable JSON. A direct JSON visit shows saved
+text until Metadata is opened. Reset remains disabled. Direct JSON editing and
+dataset creation are not implemented.
+
+Explicit Save posts the serialized document as UTF-8 `application/json` to
+`/datasets/[name]/save`. The server bounds the body to 5 MiB, repeats strict
+admission and shared metadata checks, then replaces only the discovered dataset's
+existing regular descriptor using an exclusive same-directory temporary file,
+file sync and atomic rename. Policy issues are reported but do not block saving
+incomplete work. No resource contents are read. Success advances the browser's
+saved baseline without replacing newer edits or row identities; failure retains
+the draft. This single-user version assumes no external changes and has no
+revision/conflict protocol. Basic mode and ownership survive; ACLs and extended
+attributes do not. See [Save usage](../apps/web/README.md#save).
+
+## Filesystem boundaries
+
+README and descriptor reads require discovered directory names and fixed
+filenames. The reader uses bounded UTF-8 reads, no-follow opens, regular
+single-link files and identity checks. These checks detect ordinary races but
+are not a sandbox against hostile concurrent filesystem changes.
+
+Resource path suggestions list safe root entries without reading their contents.
+A separate GET endpoint counts a selected resource on demand. It refuses unsafe
+paths, links and special files, and returns totals/status only. CSV/TSV, JSON,
+JSONL and directory counts have byte, entry, depth, concurrency and time limits.
+Counts are display-only and never enter metadata or shared validation. See the
+[Steward README](../apps/web/README.md) for local usage and checks.
+
+## Build and verification
+
+The app imports compiled public exports from the workspace validator. App
+`dev`, `build` and `check` compile the validator first. The app's browser bundle
+and VM probe check portable draft code; they are not interactive browser tests.
+Tests use synthetic temporary datasets. Read-only routes leave files unchanged;
+Save tests cover exact replacement, refused input and pre-rename failure cleanup.
+CI runs validator checks/tests and Steward checks/tests. ESLint is available
+locally with `pnpm lint` but is not a CI step.

@@ -1,12 +1,10 @@
 # Lazydata
 
-Shared, read-only dataset validation. A TypeScript/SvelteKit rebuild of Dataset
-Steward is planned; the web application is not implemented yet.
-
-## Use the validator
-
-See the [validator README](packages/validator/README.md) for installation, CLI
-usage and APIs. Template, Steward and portal adoption are separate changes.
+Lazydata provides shared dataset validation and a local Dataset Steward. The
+[validator](packages/validator/README.md) checks metadata and repositories without
+writing files. The [Steward app](apps/web/README.md) lists datasets, renders their
+READMEs and lets you edit, preview and save metadata locally. Direct JSON editing
+and dataset creation are not implemented.
 
 ## Development
 
@@ -14,25 +12,29 @@ Use Node.js 24 LTS and pnpm 12.x. From this directory:
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
+pnpm lint
 pnpm typecheck
 pnpm test
 pnpm audit --audit-level=high
 ```
 
-`pnpm typecheck` checks source and tests; Node runs the TypeScript tests directly.
-No separate linter. Use `pnpm pack:validator` to build a local archive.
+`pnpm lint` checks Steward only. The validator uses its own TypeScript 7
+source/test checks; lint currently excludes it. CI runs typecheck, tests, app
+checks and tests, and a high-severity dependency audit. See the [Steward app
+notes](apps/web/README.md#checks) for the unresolved moderate dependency advisory.
+
+Use `pnpm pack:validator` to build a local package archive.
 
 ## CI and releases
 
-[Validate lazydata](.github/workflows/validate-lazydata.yml) runs typecheck,
-tests/build and audit on PRs, main pushes and manual dispatch. Its check is `tests`.
+[Validate lazydata](.github/workflows/validate-lazydata.yml) runs the checks on
+pull requests, pushes to `main` and manual dispatch. Its required check is
+`tests`.
 
-[Release Please](.github/workflows/release.yml) runs after successful CI on current
-main. Review and validate its release PR before merging. A release then triggers
-[archive publishing](.github/workflows/publish-validator.yml): build the tagged
-code, test installation, and attach a semver `.tgz` without overwriting assets.
-A release is source-only until that upload succeeds. There is no registry
-publication or standalone checksum file.
+[Release Please](.github/workflows/release.yml) manages versions and changelog
+updates after successful CI on current `main`. Review its release PR before
+merging. The publisher then builds and tests a compiled semver `.tgz` archive.
+Packages are not published to a registry; existing release assets are never
+overwritten. See the [release reference](docs/reference.md#releases).
 
-See the [release guide](docs/reference.md#releases) for versioning and retries,
-and [architecture](docs/architecture.md) for validation boundaries.
+See [architecture](docs/architecture.md) for package and app boundaries.

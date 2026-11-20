@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "pnpm --filter @lazydata/validator build",
+    "lint": "pnpm --filter @lazydata/steward lint",
     "typecheck": "pnpm --filter @lazydata/validator typecheck",
     "test": "node --test scripts/*.test.ts && pnpm --filter @lazydata/validator test",
     "pack:validator": "pnpm build && pnpm --filter @lazydata/validator pack"
