@@ -6,4 +6,5 @@ export type ReadmeTag = (typeof readmeTags)[number];
 
 export type ReadmeNode =
   | { tag: 'text'; text: string }
+  | { tag: 'badge'; text: string }
   | { tag: ReadmeTag; children: ReadmeNode[]; href?: string; start?: number };

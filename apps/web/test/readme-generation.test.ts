@@ -1,0 +1,124 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import { test } from 'node:test';
+import { parseBuckets } from '@lazydata/validator';
+import { generateReadme } from '../src/lib/server/readme-generation.ts';
+import { renderReadme } from '../src/lib/server/readme.ts';
+
+const descriptor = {
+  name: 'example', title: 'Example 中文', description: 'Supplied description',
+  keywords: ['task:catalogue', 'project:archive', 'stage:master'],
+  created: '2026-01-01T00:00:00Z', version: '1.2.3-rc.1+build.2',
+  contributors: [{ title: 'A person', roles: ['author', 'editor'] }],
+  sources: [{ title: 'Original', path: 'https://example.org/source' }],
+  resources: [{ name: 'input', title: 'Input', path: 'missing.csv', format: 'csv', count: 42 },
+    { name: 'other', path: ['one.json', 'two.json'], count: 0 }],
+};
+
+test('generates a prose introduction, lists and only comparison tables using supplied counts', () => {
+  const before = structuredClone(descriptor);
+  const readme = generateReadme(descriptor, parseBuckets('category,count\nBooks,7\nMaps,0\n'));
+  for (const section of ['# Example 中文', '## Contributors', '## Sources', '## Resources', '## Buckets']) {
+    assert.ok(readme.includes(section), section);
+  }
+  assert.match(readme, /shields\.io\/badge\/task-catalogue-green/);
+  assert.ok(!readme.includes('## Details'));
+  assert.ok(readme.includes('*example · 2026-01-01*'));
+  const title = readme.indexOf('# Example 中文');
+  const subtitle = readme.indexOf('*example · 2026-01-01*');
+  const badges = readme.indexOf('![task:');
+  const description = readme.indexOf('Supplied description');
+  assert.ok(title < subtitle && subtitle < badges && badges < description);
+  assert.match(readme, /shields\.io\/badge\/version-1\.2\.3--rc\.1%2Bbuild\.2-blue/);
+  assert.ok(readme.includes('- A person — author, editor'));
+  assert.ok(readme.includes('- Original — https://example.org/source'));
+  assert.match(readme, /missing\.csv \| csv \| 42 rows/);
+  assert.match(readme, /one\.json, two\.json \| {2}\| 0 files/);
+  assert.match(readme, /\| Books \| 7 \|/);
+  assert.match(readme, /\| Maps \| 0 \|/);
+  assert.deepEqual(descriptor, before);
+  const nodes = renderReadme(readme).nodes;
+  assert.equal(nodes[0].tag, 'h2', 'the viewer starts with the README title, not the generator comment');
+  assert.ok(!JSON.stringify(nodes).includes('<!-- notes -->'));
+  assert.equal(nodes.filter((node) => node.tag === 'table').length, 2);
+  assert.equal(nodes.filter((node) => node.tag === 'ul').length, 2);
+});
+
+test('escapes descriptor and bucket text rather than injecting Markdown or HTML', () => {
+  const readme = generateReadme({ ...descriptor, title: '# [click](https://example.org)',
+    description: '<script>x</script>\n| ![image](https://example.org/x)',
+  }, parseBuckets('category,count\n"A|B",1\n'));
+  assert.ok(readme.includes('\\# \\[click\\]\\(https://example.org\\)'));
+  assert.ok(readme.includes('&lt;script&gt;'));
+  assert.ok(readme.includes('A\\|B'));
+  assert.ok(!readme.includes('\n| ![image]'));
+  const rendered = JSON.stringify(renderReadme(readme).nodes);
+  assert.ok(!rendered.includes('"href":'));
+  assert.ok(rendered.includes('<script>x</script>'));
+});
+
+test('generated badges become local viewer badges with escaped punctuation and Unicode intact', () => {
+  const text = generateReadme({ ...descriptor, keywords: [
+    'task:object_detection', 'project:Archive [中文] (v1)', 'stage:ground-truth',
+  ] });
+  const badges = renderReadme(text).nodes.flatMap((node) => node.tag === 'p' ? node.children : [])
+    .filter((node) => node.tag === 'badge');
+  assert.deepEqual(badges, [
+    { tag: 'badge', text: 'task: object_detection' },
+    { tag: 'badge', text: 'project: Archive [中文] (v1)' },
+    { tag: 'badge', text: 'stage: ground-truth' },
+    { tag: 'badge', text: 'version: 1.2.3-rc.1+build.2' },
+  ]);
+});
+
+test('keeps description paragraphs as escaped prose without creating Markdown structures', () => {
+  const description = 'First paragraph.\r\nStill the first paragraph.\r\n\r\nSecond paragraph.\n    # Not a heading\n- Not a list\n1. Not a list\n===\n<script>literal</script>';
+  const text = generateReadme({ name: 'example', title: 'Example', description, resources: [] });
+  const nodes = renderReadme(text).nodes;
+  assert.equal(nodes.filter((node) => node.tag === 'h2').length, 1, 'only the README title becomes h2 in the viewer');
+  assert.equal(nodes.filter((node) => node.tag === 'ul' || node.tag === 'ol' || node.tag === 'pre').length, 0);
+  const paragraphs = nodes.filter((node) => node.tag === 'p').map((node) => JSON.stringify(node));
+  assert.ok(paragraphs.some((node) => node.includes('First paragraph.') && node.includes('Still the first paragraph.')));
+  assert.ok(paragraphs.some((node) => node.includes('Second paragraph.') && node.includes('<script>literal</script>')));
+});
+
+test('omits absent date/version and empty contributor/source sections', () => {
+  const text = generateReadme({ name: 'example', title: 'Example', description: 'Description', resources: [] });
+  assert.ok(text.includes('*example*'));
+  assert.ok(!text.includes(' · '));
+  assert.ok(!text.includes('![version:'));
+  assert.ok(!text.includes('## Contributors'));
+  assert.ok(!text.includes('## Sources'));
+  assert.ok(!text.includes('undefined'));
+});
+
+test('list entries omit absent optional values without dangling separators', () => {
+  const text = generateReadme({ ...descriptor,
+    contributors: [{ title: 'A person' }],
+    sources: [{ title: 'Title only' }, { path: 'source.csv' }],
+  });
+  assert.ok(text.includes('- A person\n'));
+  assert.ok(text.includes('- Title only\n- source.csv'));
+  assert.ok(!text.includes('A person —'));
+  assert.ok(!text.includes('Title only —'));
+});
+
+test('preserves notes byte-for-byte and is stable on repeated generation', () => {
+  const notes = '\r\n\r\n## Human notes\r\n  Keep spacing.  \r\n<!-- notes -->\r\n';
+  const existing = '# Old generated section\n<!-- notes -->' + notes;
+  const first = generateReadme(descriptor, undefined, existing);
+  assert.ok(first.endsWith('<!-- notes -->' + notes));
+  assert.equal(generateReadme(descriptor, undefined, first), first);
+  assert.ok(!first.includes('Old generated section'));
+});
+
+test('keeps unmarked handwritten README text and replaces only exact reviewed templates', async () => {
+  const handwritten = '# Dataset repository template\n\nMy custom notes.\n';
+  assert.ok(generateReadme(descriptor, undefined, handwritten).endsWith(handwritten));
+  const template = await fs.readFile(new URL('./fixtures/template-readme-v0.1.0.md', import.meta.url), 'utf8');
+  assert.ok(!generateReadme(descriptor, undefined, template).includes(template));
+  const empty = generateReadme({ name: 'example', resources: [] });
+  assert.match(empty, /No buckets available/);
+  assert.ok(!empty.includes('## Sources'));
+  assert.equal(generateReadme({ name: 'example', resources: [] }, undefined, empty), empty);
+});

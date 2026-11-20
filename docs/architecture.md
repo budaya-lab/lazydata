@@ -32,7 +32,9 @@ views. The reader accepts only discovered datasets and the fixed filenames
 
 README Markdown is parsed on the server into an allowlisted tree. Svelte renders
 escaped text and elements; raw HTML and images are disabled, and only credential-
-free HTTPS links are clickable. Reviewed template fingerprints identify exact
+free HTTPS links are clickable. Recognized task/project/stage/version Shields image tokens
+become escaped local Badge components; no image URL is sent to the client or
+fetched. Other image tokens remain alt text. Reviewed template fingerprints identify exact
 README matches only; they do not establish provenance.
 
 Metadata checks use the portable validator and matched policy. They do not read
@@ -43,7 +45,9 @@ preserved. Strict admission rejects malformed or duplicate-key JSON and unsafe
 number conversions. Formatting and equivalent number notation may normalize.
 
 After Metadata has opened, shallow Metadata/JSON navigation retains the form,
-draft and loaded revision. Failed or pending inputs remain visible and do not
+draft and loaded revision. README tab navigation uses `goto` with `refreshAll`
+to re-run server loads even when returning from a shallow URL to the underlying
+README route. It keeps the dataset-scoped draft and does not reload the document. Failed or pending inputs remain visible and do not
 silently replace the last representable JSON. A direct JSON visit shows saved
 text until Metadata is opened. Reset remains disabled. Direct JSON editing and
 dataset creation are not implemented.
@@ -57,7 +61,23 @@ incomplete work. No resource contents are read. Success advances the browser's
 saved baseline without replacing newer edits or row identities; failure retains
 the draft. This single-user version assumes no external changes and has no
 revision/conflict protocol. Basic mode and ownership survive; ACLs and extended
-attributes do not. See [Save usage](../apps/web/README.md#save).
+attributes do not.
+
+After descriptor Save, passing metadata checks trigger an app-only README
+renderer/writer. It uses the saved object, existing resource counts and optional
+`buckets.csv` through the shared `parseBuckets` API. It never counts resources or
+changes the descriptor/buckets. The same bounded reader admits this additional
+fixed filename with a 1 MB limit. README generation preserves notes after
+`<!-- notes -->`, keeps unmarked handwritten text and discards only exact
+reviewed templates. It caps output at 5 MiB and atomically replaces changed
+README bytes using the same writer as the descriptor. A README failure returns a
+separate warning with metadata Save success. The writes are not a two-file
+transaction. Generated READMEs start with title, name/Created-date subtitle,
+badges and escaped description paragraphs. Contributors/sources use lists;
+resources/buckets keep comparison tables. Version joins the badge row when
+supplied. The viewer suppresses only Lazydata's known bookkeeping markers and
+honors Markdown's hidden tight-list paragraph tokens. Portable validation remains read-only. See
+[Save usage](../apps/web/README.md#save).
 
 ## Filesystem boundaries
 
@@ -79,6 +99,7 @@ The app imports compiled public exports from the workspace validator. App
 `dev`, `build` and `check` compile the validator first. The app's browser bundle
 and VM probe check portable draft code; they are not interactive browser tests.
 Tests use synthetic temporary datasets. Read-only routes leave files unchanged;
-Save tests cover exact replacement, refused input and pre-rename failure cleanup.
+Save tests cover exact descriptor replacement, refused input, README generation,
+note preservation, optional bucket handling and pre-rename failure cleanup.
 CI runs validator checks/tests and Steward checks/tests. ESLint is available
 locally with `pnpm lint` but is not a CI step.

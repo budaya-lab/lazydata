@@ -23,8 +23,9 @@ test('saves the exact admitted draft and reports metadata issues without reading
   await fs.writeFile(join(directory, 'dataset.config.json'), '{invalid local policy');
   const before = await fs.stat(path);
   const text = '{\n "title":"中文 😀", "unknown":{"keep":true}, "resources":[{"path":"missing.csv","extra":42}]\n}\n';
-  const issues = await saveMetadata(root, 'ds-example', text);
-  assert.ok(issues.length, 'incomplete metadata is saveable with reported issues');
+  const result = await saveMetadata(root, 'ds-example', text);
+  assert.ok(result.issues.length, 'incomplete metadata is saveable with reported issues');
+  assert.equal(result.readme, 'skipped');
   assert.equal(await fs.readFile(path, 'utf8'), text);
   const after = await fs.stat(path);
   assert.equal(after.mode & 0o777, before.mode & 0o777);

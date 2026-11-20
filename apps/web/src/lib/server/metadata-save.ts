@@ -1,12 +1,10 @@
-import { randomUUID } from 'node:crypto';
-import { constants } from 'node:fs';
-import fs from 'node:fs/promises';
-import { join } from 'node:path';
 import { validateMetadata } from '@lazydata/validator';
 import policy from '@lazydata/validator/policy' with { type: 'json' };
 import { MAX_DATASET_TEXT_BYTES } from '../dataset-text-limits.ts';
 import { MetadataDraftError, readMetadataObject } from '../metadata-json.ts';
 import { DatasetTextError, readDatasetSnapshot } from './dataset-text.ts';
+import { writeAtomicText } from './atomic-text.ts';
+import { saveReadme } from './readme-save.ts';
 
 export async function readSaveText(request: Request): Promise<string> {
   if (Number(request.headers.get('content-length')) > MAX_DATASET_TEXT_BYTES) {
@@ -36,29 +34,20 @@ export async function readSaveText(request: Request): Promise<string> {
 }
 
 // Single-user local Save: no external-change detection or revision protocol.
-export async function saveMetadata(root: string | undefined, name: string, text: string): Promise<string[]> {
+export async function saveMetadata(root: string | undefined, name: string, text: string): Promise<{
+  issues: string[]; readme: 'updated' | 'unchanged' | 'skipped' | 'failed'; message: string;
+}> {
   const data = readMetadataObject(text);
   const issues = validateMetadata(data, policy);
   const snapshot = await readDatasetSnapshot(root, name, 'datapackage.json');
-  await fs.access(snapshot.path, constants.W_OK);
   if (snapshot.stat.mode & 0o7000n) throw new MetadataDraftError('Special file permissions are not supported for saving.');
-  const temporary = join(snapshot.directory, `.datapackage-${randomUUID()}.tmp`);
-  const file = await fs.open(temporary, 'wx', 0o600);
-  let committed = false;
+  await writeAtomicText(snapshot.directory, 'datapackage.json', text, snapshot.stat);
+  if (issues.length) return { issues, readme: 'skipped', message: 'README.md was not updated because metadata checks have issues.' };
   try {
-    try {
-      await file.writeFile(text, 'utf8');
-      const stat = await file.stat({ bigint: true });
-      if (stat.uid !== snapshot.stat.uid || stat.gid !== snapshot.stat.gid) {
-        await file.chown(Number(snapshot.stat.uid), Number(snapshot.stat.gid));
-      }
-      await file.chmod(Number(snapshot.stat.mode & 0o777n));
-      await file.sync();
-    } finally { await file.close(); }
-    await fs.rename(temporary, snapshot.path);
-    committed = true;
-  } finally {
-    if (!committed) await fs.unlink(temporary);
+    const readme = await saveReadme(root, name, snapshot.directory, data);
+    return { issues, readme, message: readme === 'updated' ? 'README.md updated.' : 'README.md is already up to date.' };
+  } catch (cause) {
+    console.error('README generation failed after metadata was saved.', cause instanceof Error ? cause.name : 'Unknown error');
+    return { issues, readme: 'failed', message: 'Warning: metadata saved, but README.md could not be updated. Check README.md and buckets.csv.' };
   }
-  return issues;
 }

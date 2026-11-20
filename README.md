@@ -3,8 +3,9 @@
 Lazydata provides shared dataset validation and a local Dataset Steward. The
 [validator](packages/validator/README.md) checks metadata and repositories without
 writing files. The [Steward app](apps/web/README.md) lists datasets, renders their
-READMEs and lets you edit, preview and save metadata locally. Direct JSON editing
-and dataset creation are not implemented.
+READMEs and lets you edit, preview and save metadata locally. Save regenerates the
+README when metadata checks pass, keeping human notes and existing resource
+counts. Direct JSON editing and dataset creation are not implemented.
 
 ## Development
 

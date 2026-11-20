@@ -30,7 +30,9 @@ function identity(stat: BigIntStats): string {
   return [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs, stat.nlink, stat.mode, stat.uid, stat.gid].join(':');
 }
 
-export async function readDatasetSnapshot(root: string | undefined, name: string, filename: 'datapackage.json' | 'README.md'): Promise<DatasetSnapshot> {
+export async function readDatasetSnapshot(root: string | undefined, name: string, filename: 'datapackage.json' | 'README.md' | 'buckets.csv'): Promise<DatasetSnapshot> {
+  const limit = filename === 'buckets.csv' ? 1_000_000 : MAX_DATASET_TEXT_BYTES;
+  const limitMessage = `${filename} exceeds the ${filename === 'buckets.csv' ? '1 MB' : '5 MiB'} viewing limit.`;
   const parent = configuredRoot(root);
   if (!(await discoverDatasets(parent)).includes(name)) throw new DatasetNotFoundError();
 
@@ -52,14 +54,14 @@ export async function readDatasetSnapshot(root: string | undefined, name: string
         || await fs.realpath(directory) !== directory) {
         throw new DatasetTextError(500, `${filename} changed while opening it. Reload and try again.`);
       }
-      if (opened.size > BigInt(MAX_DATASET_TEXT_BYTES)) {
-        throw new DatasetTextError(413, `${filename} exceeds the 5 MiB viewing limit.`);
+      if (opened.size > BigInt(limit)) {
+        throw new DatasetTextError(413, limitMessage);
       }
       const chunks: Buffer[] = [];
-      for await (const chunk of file.createReadStream({ autoClose: false, start: 0, end: MAX_DATASET_TEXT_BYTES })) chunks.push(chunk);
+      for await (const chunk of file.createReadStream({ autoClose: false, start: 0, end: limit })) chunks.push(chunk);
       const bytes = Buffer.concat(chunks);
-      if (bytes.length > MAX_DATASET_TEXT_BYTES) {
-        throw new DatasetTextError(413, `${filename} exceeds the 5 MiB viewing limit.`);
+      if (bytes.length > limit) {
+        throw new DatasetTextError(413, limitMessage);
       }
       const after = await file.stat({ bigint: true });
       const afterDirectory = await fs.stat(directory, { bigint: true });
