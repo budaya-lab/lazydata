@@ -18,7 +18,9 @@ not fetched. Licenses uses a local name-only tag field with common SPDX
 suggestions and custom identifiers allowed. Contributors adds local Name and
 Roles rows, with role tags, suggestions and custom roles. Read-only checks and the
 separate raw datapackage.json view remain. Checks revalidate unsaved edits after a
-500 ms pause, without file reads or auto-save. Saving and dataset creation are not implemented.
+500 ms pause, without file reads or auto-save. Once Metadata is opened, its edits
+also appear in the read-only JSON preview and survive switching between those
+views. Saving, direct JSON entry and dataset creation are not implemented.
 
 ## Use the validator
 
@@ -31,13 +33,19 @@ Use Node.js 24 LTS and pnpm 12.x. From this directory:
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
+pnpm lint
 pnpm typecheck
 pnpm test
 pnpm audit --audit-level=high
 ```
 
 `pnpm typecheck` checks source and tests; Node runs the TypeScript tests directly.
-No separate linter. Use `pnpm pack:validator` to build a local archive.
+`pnpm lint` runs Steward's recommended ESLint/TypeScript/Svelte checks without
+formatting rules. It excludes generated output and keeps app TypeScript 6 separate
+from validator TypeScript 7, which typescript-eslint does not yet support. Validator
+source/tests still use their own typechecks and tests. CI is unchanged; lint is a
+local command for now. See the [app notes](apps/web/README.md#check) for the current
+deferred dev-dependency audit finding. Use `pnpm pack:validator` to build a local archive.
 
 ## CI and releases
 

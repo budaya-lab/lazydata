@@ -55,9 +55,11 @@ requires exactly one task and one project; local tag controls do not change it.
 Resources contains local add/remove rows for Name, Path, Title, Format and a
 read-only Count. Required markers follow the compiled shared policy: currently
 Name, Title and Path. Draft resource checks reuse that validator in Checks;
-resource counting is separate. Supplied names/titles are retained. Missing Name
-uses the basename without its final extension; missing Format uses the lowercase
-extension. Path edits update defaults without replacing manual overrides. A
+resource counting is separate. Supplied names/titles are retained. Missing stored
+Name/Format stay blank; a missing required Name has an inline error matching Checks.
+Choosing/editing Path fills Name from its basename and Format from its lowercase
+extension, and copies all three to the draft regardless of count support. Manual
+Name/Format overrides are retained. A
 selected directory keeps its basename and has blank, disabled Format.
 
 Path offers native autocomplete from safe root files/folders, excluding hidden,
@@ -70,7 +72,8 @@ validation. CSV/TSV excludes the header and counts logical records, including
 quoted newlines; inconsistent columns/malformed quotes are errors. JSON supports
 top-level arrays; JSONL counts valid nonblank records. Directory counts include
 regular files recursively, including hidden files inside the selected folder.
-Unsupported formats/JSON shapes say Unsupported. Read/parse/safety failures say
+Unsupported formats/JSON shapes show a muted “Not countable” status, not an error
+or a prompt to reshape valid data. Read/parse/safety failures say
 Unavailable, never zero or the descriptor's old count. Manual Format overrides
 do not change the counter's path-extension-based parser. Counts are snapshots.
 
@@ -103,18 +106,34 @@ malformed values show errors and a raw-descriptor warning instead of being coerc
 Adding a row focuses its Name input; removing it focuses a remaining Name or Add.
 The form supports up to 200 contributors. Shared saved-metadata policy is unchanged.
 
-Draft validation overlays edited fields and displayed resource defaults on the
-loaded descriptor. It retains unexposed properties, unsupported values and
-path-only license entries.
-Malformed descriptors and edited over-limit/unsupported collections cannot become
-false successes. Resource counts already in the descriptor remain metadata;
-validation does not recount or use asynchronous count results. This overlay is
-only for checks, not a save serializer or a file-preservation contract.
+Metadata edits now update one working dataset object in `metadata-draft.ts`.
+The read-only JSON preview uses `JSON.stringify(object, null, 2)` plus a newline;
+Checks inspect that serialization after 500 ms. There is no text-patch engine,
+cumulative change journal or separate validation overlay. Unknown properties,
+untouched unsupported values and path-only licenses stay in the object. Row and
+license identities keep extra metadata with the right surviving entry. Resource
+Name/Format defaults sync with explicit path edits, independently of counting;
+count results remain display-only.
 
-The agreed future Save behavior is to allow incomplete drafts while keeping their
-issues visible. Metadata-validation issues alone will not block saving; unsafe
-requests, unsupported write operations and stale-file conflicts are separate
-safety failures. This behavior is not implemented yet.
+Normal JSON serialization changes whitespace, escapes and number notation. Strict
+admission in `metadata-json.ts` refuses duplicate keys and numbers that would
+silently round, overflow, underflow or lose negative zero. Unsafe/malformed
+whole documents remain viewable as original JSON, with an editing error instead
+of an empty replacement form. No silent repair occurs on opening a view.
+
+After Metadata is opened, shallow Metadata/JSON switching retains the mounted
+form, working object and pending inputs without reloading the descriptor. Partial
+dates and failed edits keep visible errors until corrected; the JSON preview then
+identifies the last representable values. Normalization alone is not a dirty edit.
+A direct JSON visit before Metadata still shows saved text. Leaving/reloading
+changed drafts prompts before discarding them; a full reload does not restore
+local work. Owner confirmed the earlier sync/field fix; this simpler path still
+needs browser review.
+
+Future Save sends one `{ revision, text }` request, not fields or another form/raw
+mode. The server will admit the serialized candidate and guard persistence.
+Direct JSON entry and Save remain pending. See the [draft/Save contract](../../docs/steward-save.md)
+for the current preservation decision and proposed filesystem limits.
 
 There is no save endpoint, writer, automatic Created date or dataset creation.
 Save and Reset are disabled placeholders. The app never writes dataset files,
@@ -157,18 +176,17 @@ mappings. Markdown headings start below the dataset page heading. No files chang
 
 ## Metadata form (local only)
 
-Implement the form in `src/lib/components/metadata-form.svelte`. It retains:
+The form lives in `src/lib/components/metadata-form.svelte`. It retains:
 
-- Section navigation and Overview's required Name/Title text inputs and Description
-  textarea, optional Version/Created, Keywords and Resources controls above.
-  Other section bodies are not implemented.
-- Read-only shared metadata checks in the Checks section.
+- Section navigation and Overview, Keywords, Resources, Contributors, Licenses
+  and Sources controls described above.
+- Read-only shared metadata checks in the Issues section.
 - The sticky footer with disabled **Save changes** and **Reset form**, plus a
   working **Reload file** link.
 
-The former generic editor framework, server save action, writer and editor-only
-jsonc-parser dependency remain removed. These local resource rows do not restore
-that framework.
+The former generic editor framework, server save action and writer remain
+removed. Approved jsonc-parser 3.3.1 now supports only strict/numeric admission,
+not text editing or restoration of that framework.
 POST requests cannot save metadata. README and the raw datapackage.json view remain
 read-only. Diagnostics are escaped text, never automatically followed links.
 No dataset-local configuration weakens the shared policy.
@@ -213,6 +231,7 @@ sandbox. The app has no permission to repair or replace dataset files.
 ## Check
 
 ```sh
+pnpm lint
 pnpm --filter @lazydata/steward check
 pnpm --filter @lazydata/steward test
 ```
@@ -220,12 +239,40 @@ pnpm --filter @lazydata/steward test
 `check` runs Svelte/accessibility diagnostics and strict app/test typechecking.
 `test` builds the app, then runs native Node TypeScript filesystem/HTTP tests using
 temporary fixtures in dev and built modes. Tests cover the disabled footer,
-section targets, refused POSTs and unchanged dataset bytes. No separate linter.
-App TypeScript remains 6; validator TypeScript remains 7. App dev/check/build
+section targets, refused POSTs and unchanged dataset bytes. A separate Vite client
+bundle runs working-object/admission probes in a VM with web encoding APIs but no Node globals;
+its resolver refuses Node built-ins. This is not a real-browser UI test. It uses
+Vite's [build API](https://vite.dev/guide/api-javascript.html#build) and
+[library mode](https://vite.dev/guide/build.html#library-mode), verified against
+installed 8.3.6 types. TextEncoder follows the
+[web encoding API](https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder/encode).
+`pnpm lint` (or `pnpm --filter @lazydata/steward lint`) checks app source, tests,
+scripts and config with recommended JS/TypeScript/Svelte rules. Generated
+`.svelte-kit`/`build` output is ignored. No formatting rules or automatic fixes
+are configured. Narrow rule exceptions cover already-resolved/forwarded links
+and intentional ASCII control-character path guards. Setup follows the official
+[ESLint flat config](https://eslint.org/docs/latest/use/configure/configuration-files),
+[typescript-eslint quickstart](https://typescript-eslint.io/getting-started/) and
+[Svelte plugin guide](https://sveltejs.github.io/eslint-plugin-svelte/user-guide/).
+App TypeScript remains 6; validator TypeScript remains 7. The lint parser uses
+app TypeScript 6; validator linting is deferred until typescript-eslint supports
+TypeScript 7. Existing CI has not been changed to run lint. App dev/check/build
 explicitly compile the workspace validator using its public API and matched policy.
 
+Deferred audit finding (first checked 2026-11-19): the new lint-only dependency graph includes
+`minimatch@10.2.6`, affected by moderate
+[GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+It concerns attacker-controlled glob patterns, not dataset metadata or served
+app requests. Patched upstream ESLint/typescript-eslint releases require versions
+that have not yet passed the active release-age policy. No age exception, forced
+major override or advisory ignore has been applied. Owner chose to leave it
+unresolved and continue implementation under the unchanged policy. Recheck at the
+next dependency refresh and before merge/release; this is not release clearance. Installation also reports the existing `runed@0.35.1` peer
+range for SvelteKit 2 against the already-approved SvelteKit 3; neither was changed.
+
 The UI uses the approved shadcn-svelte components and existing Tailwind/Lucide
-setup. Server-only markdown-it 15 includes its types. No install hooks are needed;
+setup. Server-only markdown-it 15 and jsonc-parser 3.3.1 include their types.
+The latter has no runtime dependencies. No install hooks are needed;
 lifecycle scripts remain disabled. Sidebar defaults use CSS classes instead of
 inline width styles, preserving production CSP without unsafe inline styles/scripts.
 Development CSS injection uses SvelteKit's own CSP handling.

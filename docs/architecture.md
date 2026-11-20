@@ -74,8 +74,9 @@ Resources uses the matched resource required-fields policy (currently Name,
 Title and Path). Full draft issues reuse the portable validator in Checks;
 no resource validation rules are forked. Inline errors stay beside fields, but
 the repeated section-level error list is removed. Pure
-helpers extract supplied strings, derive absent filename/format defaults and
-preserve manual overrides. No supplied count is trusted. Array paths/malformed
+helpers extract supplied strings without hiding missing metadata. Explicit path
+edits fill and sync Name/Format defaults while preserving manual overrides;
+count support is irrelevant. Missing loaded Name stays blank and visibly required. No supplied count is trusted. Array paths/malformed
 types are not coerced into text. Rows add/remove locally with stable IDs.
 
 The metadata loader lists safe root files/folders without reading resource
@@ -129,18 +130,54 @@ results and show Checking; revision tokens/cancellation prevent obsolete timers
 from publishing, and teardown cancels work on navigation. A synchronous flush is
 tested for future explicit Save integration, but Save remains disabled.
 
-The validation-only overlay includes displayed resource defaults and retains
-unknown row properties, original row IDs,
-unsupported saved values and path-only license entries. It adds existing local
-form rules (SemVer, contributor names and source locators) without changing shared
-policy. Malformed JSON/root shapes and unsupported/over-limit edited arrays stay
-errors, not inferred replacements. Saved counts are retained for metadata checks;
-the overlay does not trigger counting or consume asynchronous count results.
-This is not a serializer, a writer or an approval of future save semantics.
-Navigation/footer remain; Save/Reset stay disabled. There is no former editor
-model, submission parser, patcher, writer or save action. POST is refused with 405; the disabled footer is not a
-write boundary. No dataset files are written. The editor-only jsonc-parser
-dependency and its lock records were removed; other versions remain unchanged.
+The owner simplified the [draft model](steward-save.md): `metadata-draft.ts` owns
+one working object. Controls update its properties/arrays directly; JSON preview
+and checks use `JSON.stringify` serialization. Text/AST editing, local patch
+operations, cumulative journal and the legacy validation overlay are removed.
+Unknown properties, unsupported untouched data and path-only licenses remain.
+Row/license references keep extra metadata with surviving entries. Resource
+callbacks include path-generated Name/Format in path edits, but never counter
+results. Shared policy
+remains unchanged.
+
+A page-scoped `metadata-session.ts` owner retains that working object and the
+captured revision; router results cannot silently replace them. Form props derive
+from a stable saved-model reference so draft notifications do not reset inputs. Metadata remains
+mounted while hidden, retaining its controls, pending inputs and baseline row IDs.
+Once Metadata has been opened, Metadata/JSON links use SvelteKit 3 shallow routing
+and display the same draft without descriptor reloads. Direct JSON visits before
+that still display saved text. Other-dataset callbacks are refused, owners are
+isolated, and leaving/reloading changed drafts prompts for confirmation.
+
+Unsupported edits and partial native dates retain input and surface sync errors;
+the JSON view explicitly labels the last representable text. A future Save must
+not ignore those errors. Direct JSON input/rebinding is later work; no raw-text
+editor can currently reorder rows or mutate the form baseline.
+
+Both views will use one `{ revision, text }` Save request. The server selects the
+descriptor, validates untrusted candidate text, recomputes metadata issues and
+performs revision/filesystem checks before writing those exact bytes. There is
+no server field/row patch protocol or form/raw submission-mode split. Local form
+allowlists do not restrict deliberate direct JSON edits to unexposed properties.
+Metadata issues alone remain nonblocking; malformed requests/candidates and
+filesystem conflicts remain failures. Keep newer edits after a Save response.
+
+`metadata-json.ts` uses approved jsonc-parser 3.3.1 only as an admission visitor:
+strict/unique-key object JSON, bounded size/depth/value count and safe decimal
+number round-trips. Reject numeric rounding, overflow, underflow, negative zero
+and numeric tokens over 1,024 characters instead of silently changing hidden data.
+Unsafe/malformed documents retain original JSON viewing and explicit editing
+errors. Formatting/escapes/number notation may normalize; dirty tracking compares
+normalized values. Explicit edits may replace unsupported field values, not whole
+unsupported rows/containers. `dataset-text-limits.ts` still shares the reader's
+5 MiB limit. Browser code uses TextEncoder; reads remain server-only. The Vite
+bundle/VM probe confirms portability, not DOM behavior. Owner confirmed the prior
+sync/input fix; this simpler path, buffer/clear UX and persistence need review.
+
+Save/Reset remain disabled. The former editor has not been restored; no Save
+handler/writer exists and POST is refused with 405. The JSON view is still read-only;
+synchronization changes only browser state. No dataset files are written. Transaction/platform limits
+and the revised implementation order are in the shared draft/Save contract.
 
 The Node startup wrapper pins loopback and supplies a trusted HTTP protocol header
 before the adapter handles requests; client proxy headers never define the origin.
