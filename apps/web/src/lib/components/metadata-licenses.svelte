@@ -1,5 +1,7 @@
 <script lang="ts">
     import MetadataTags from "$lib/components/metadata-tags.svelte";
+    import { untrack } from 'svelte';
+    import { createLicenseIdentities } from '$lib/license-identities.ts';
     import * as Field from "$lib/components/ui/field/index.js";
     import {
         LICENSE_PRESETS,
@@ -7,9 +9,13 @@
         licenseDraftIssues,
     } from "$lib/license-fields.ts";
 
-    let { model, onedit }: { model: LicenseModel; onedit: (names: string[]) => void } = $props();
+    let { model, onedit }: { model: LicenseModel; onedit: (names: string[], ids: number[]) => void } = $props();
     let names = $derived([...model.names]);
     let issues = $derived(licenseDraftIssues(names, model.required));
+    const identities = createLicenseIdentities(untrack(() => model.names));
+    function report(values: string[], removedIndex?: number) {
+        onedit(values, identities.update(values, removedIndex));
+    }
 </script>
 
 <Field.Set id="root/licenses" aria-label="Licenses" class="scroll-mt-28 gap-4">
@@ -26,7 +32,7 @@
             id="metadata-licenses"
             label="Names"
             bind:value={names}
-            {onedit}
+            onedit={report}
             required={model.required}
             suggestions={LICENSE_PRESETS}
             helpId="metadata-licenses-help"

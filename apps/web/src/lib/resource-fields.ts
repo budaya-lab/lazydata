@@ -28,6 +28,10 @@ export function changeResourcePath(fields: ResourceFields, path: string, options
   };
 }
 
+export function resourceFieldEdits(edits: ResourceFields, fields: ResourceFields, key: keyof ResourceFields): ResourceFields {
+  return { ...edits, [key]: fields[key], ...(key === 'path' ? { name: fields.name, format: fields.format } : {}) };
+}
+
 function object(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -49,11 +53,10 @@ export function resourceFormModel(text: string, options: ResourceOption[]): Reso
     }
     const path = typeof entry.path === 'string' ? entry.path : entry.path === undefined ? '' : null;
     const kind = resourceKind(path, options);
-    const defaults = resourceDefaults(path ?? '', kind);
     const supplied = (key: string, fallback: string): string | null => entry[key] === undefined
       ? fallback : typeof entry[key] === 'string' ? entry[key] : null;
-    const row = { name: supplied('name', defaults.name), path, title: supplied('title', ''),
-      format: kind === 'directory' ? '' : supplied('format', defaults.format) };
+    const row = { name: supplied('name', ''), path, title: supplied('title', ''),
+      format: kind === 'directory' ? '' : supplied('format', '') };
     if (Object.values(row).some((value) => value === null)) {
       model.message = 'Some supplied resource values are unsupported (including path arrays); see the raw descriptor. Nothing is saved.';
     }

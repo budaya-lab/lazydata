@@ -3,8 +3,9 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import { join } from 'node:path';
 import { configuredRoot, discoverDatasets } from './discovery.ts';
+import { MAX_DATASET_TEXT_BYTES } from '../dataset-text-limits.ts';
 
-export const MAX_DATASET_TEXT_BYTES = 5 * 1024 * 1024;
+export { MAX_DATASET_TEXT_BYTES } from '../dataset-text-limits.ts';
 
 export class DatasetTextError extends Error {
   readonly status: 404 | 413 | 500;

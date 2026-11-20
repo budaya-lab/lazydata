@@ -19,7 +19,7 @@ export const load = (async ({ params, url }) => {
 			return { name: params.name, view: 'readme' as const, readme: await readReadme(process.env.DATASET_ROOT, params.name) };
 		}
 		const snapshot = await readDatasetSnapshot(process.env.DATASET_ROOT, params.name, 'datapackage.json');
-		if (view === 'datapackage') return { name: params.name, view: 'datapackage' as const, text: snapshot.text };
+		if (view === 'datapackage') return { name: params.name, view: 'datapackage' as const, text: snapshot.text, revision: snapshot.version };
 		const { issues, overview, keywordFields } = inspectMetadata(snapshot.text);
 		let options: ResourceOption[] = [];
 		let resourceMessage = '';
@@ -33,7 +33,7 @@ export const load = (async ({ params, url }) => {
 		const licenseModel = licenseFormModel(snapshot.text);
 		const contributorModel = contributorFormModel(snapshot.text);
 		if (resourceMessage) resourceModel.message = [resourceModel.message, resourceMessage].filter(Boolean).join(' ');
-		return { name: params.name, view: 'metadata' as const, issues, metadataText: snapshot.text, overview, keywordFields, stageOptions, resourceModel, sourceModel, licenseModel, contributorModel };
+		return { name: params.name, view: 'metadata' as const, issues, metadataText: snapshot.text, revision: snapshot.version, overview, keywordFields, stageOptions, resourceModel, sourceModel, licenseModel, contributorModel };
 	} catch (cause) {
 		if (cause instanceof DescriptorError || cause instanceof DiscoveryError) {
 			console.error(cause);

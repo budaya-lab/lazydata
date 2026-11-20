@@ -1,5 +1,9 @@
 <script lang="ts">
     import { resolve } from "$app/paths";
+    import { afterNavigate, beforeNavigate, goto } from "$app/navigation";
+    import { page } from "$app/state";
+    import { untrack } from "svelte";
+    import { receiveMetadataSession, updateMetadataSession, type MetadataSession } from "$lib/metadata-session.ts";
     import ReadmeBody from "$lib/components/readme-body.svelte";
     import MetadataForm from "$lib/components/metadata-form.svelte";
     import * as Alert from "$lib/components/ui/alert/index.js";
@@ -10,6 +14,32 @@
     let datasetUrl = $derived(
         resolve("/datasets/[name]", { name: encodeURIComponent(data.name) }),
     );
+    type MetadataData = Extract<PageProps['data'], { view: 'metadata' }>;
+    let session = $state.raw<MetadataSession<MetadataData> | null>(untrack(() =>
+        receiveMetadataSession(null, data.name, data.view === 'metadata' ? data : undefined)));
+    let active = $derived(session?.metadata.name === data.name ? session : null);
+    let baseline = $derived(active?.metadata ?? null);
+    let draft = $derived(active?.draft ?? null);
+    let view = $derived(page.shallow?.url.searchParams.get('view') ?? data.view);
+    let jsonText = $derived(active?.draft?.text() ?? baseline?.metadataText ?? (data.view === 'datapackage' ? data.text : ''));
+    // Router loads change for each view; capture a metadata baseline only once per dataset.
+    afterNavigate(() => {
+        session = receiveMetadataSession(session, data.name, data.view === 'metadata' ? data : undefined);
+    });
+    function updateDraft(name: string, error: string) {
+        session = updateMetadataSession(session, name, error);
+    }
+    async function switchView(event: MouseEvent, target: 'metadata' | 'datapackage') {
+        if (!active || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        await goto(resolve(`/datasets/[name]?view=${target}`, { name: encodeURIComponent(data.name) }), { shallow: true, reset: true });
+    }
+    beforeNavigate((navigation) => {
+        if (!session?.draft || (!session.draft.dirty && !session.error)) return;
+        if (!navigation.willUnload && navigation.to?.url.pathname === navigation.from?.url.pathname) return;
+        if (navigation.type === 'leave') navigation.cancel();
+        else if (!window.confirm('Discard unsaved metadata changes?')) navigation.cancel();
+    });
 </script>
 
 <svelte:head>
@@ -23,24 +53,42 @@
     <nav aria-label="Dataset sections" class="flex flex-wrap gap-2">
         <Button
             href={datasetUrl}
-            variant={data.view === "readme" ? "secondary" : "ghost"}
-            aria-current={data.view === "readme" ? "page" : undefined}
+            variant={view === "readme" ? "secondary" : "ghost"}
+            aria-current={view === "readme" ? "page" : undefined}
             >README</Button
         >
         <Button
             href={`${datasetUrl}?view=metadata`}
-            variant={data.view === "metadata" ? "secondary" : "ghost"}
-            aria-current={data.view === "metadata" ? "page" : undefined}
+            variant={view === "metadata" ? "secondary" : "ghost"}
+            aria-current={view === "metadata" ? "page" : undefined}
+            onclick={(event) => switchView(event, 'metadata')}
             >Metadata</Button
         >
         <Button
             href={`${datasetUrl}?view=datapackage`}
-            variant={data.view === "datapackage" ? "secondary" : "ghost"}
-            aria-current={data.view === "datapackage" ? "page" : undefined}
+            variant={view === "datapackage" ? "secondary" : "ghost"}
+            aria-current={view === "datapackage" ? "page" : undefined}
+            onclick={(event) => switchView(event, 'datapackage')}
             >datapackage.json</Button
         >
     </nav>
-    {#if data.view === "readme"}
+    {#if baseline}
+        {#key baseline.name}
+            <div hidden={view !== 'metadata'}>
+                {#if draft}
+                    <MetadataForm {...baseline.overview} keywordFields={baseline.keywordFields} resourceModel={baseline.resourceModel} resourceCountUrl={`${datasetUrl}/resources`} sourceModel={baseline.sourceModel} licenseModel={baseline.licenseModel} contributorModel={baseline.contributorModel} stageOptions={baseline.stageOptions} issues={baseline.issues} {draft} reloadUrl={`${datasetUrl}?view=metadata`} datasetId={baseline.name} ondraft={updateDraft} />
+                {:else}
+                    <p role="alert">Safe metadata editing is unavailable: {active?.error} The original JSON is still available in datapackage.json.</p>
+                    {#if baseline.issues.length}
+                        <ul aria-label="Metadata validation" class="list-disc pl-5">
+                            {#each baseline.issues as issue, index (`${index}:${issue}`)}<li>{issue}</li>{/each}
+                        </ul>
+                    {/if}
+                {/if}
+            </div>
+        {/key}
+    {/if}
+    {#if view === "readme" && data.view === "readme"}
         {#if data.readme.status === "unavailable"}
             <Alert.Root>
                 <Alert.Title>README unavailable</Alert.Title>
@@ -69,16 +117,15 @@
                 <ReadmeBody nodes={data.readme.nodes} />
             {/if}
         {/if}
-    {:else if data.view === "metadata"}
-        {#key data.overview}
-            <MetadataForm {...data.overview} keywordFields={data.keywordFields} resourceModel={data.resourceModel} resourceCountUrl={`${datasetUrl}/resources`} sourceModel={data.sourceModel} licenseModel={data.licenseModel} contributorModel={data.contributorModel} stageOptions={data.stageOptions} issues={data.issues} metadataText={data.metadataText} reloadUrl={`${datasetUrl}?view=metadata`} />
-        {/key}
-    {:else}
+    {:else if view === "datapackage"}
         <h2 class="font-heading text-xl font-semibold">datapackage.json</h2>
-        <p>Read-only text. Metadata editing is not implemented.</p>
+        <p>Read-only JSON preview. Metadata edits appear here without saving.</p>
+        {#if active?.error}
+            <p role="alert" class="text-sm text-destructive">Some form edits could not be represented: {active.error} This shows the last representable draft. Return to Metadata to resolve them.</p>
+        {/if}
         <pre
             class="max-w-full overflow-x-auto border bg-muted p-4 text-xs leading-relaxed"><code
-                >{data.text}</code
+                >{jsonText}</code
             ></pre>
     {/if}
 </section>

@@ -23,7 +23,7 @@
         suggestions?: readonly string[];
         helpId?: string;
         validationMessage?: string;
-        onedit: (values: string[]) => void;
+        onedit: (values: string[], removedIndex?: number) => void;
     } = $props();
     let draft = $state("");
     let input = $state<HTMLInputElement | null>(null);
@@ -54,7 +54,7 @@
 
     function remove(index: number) {
         value = value.filter((_, position) => position !== index);
-        onedit(value);
+        onedit(value, index);
         announcement = `${label}: tag removed. ${value.length} remaining.`;
         input?.focus();
     }

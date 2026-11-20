@@ -4,6 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test, type TestContext } from 'node:test';
 import { readDescriptor, DescriptorError, MAX_DESCRIPTOR_BYTES } from '../src/lib/server/descriptor.ts';
+import { MAX_DATASET_TEXT_BYTES } from '../src/lib/server/dataset-text.ts';
+import { MAX_DATASET_TEXT_BYTES as SHARED_TEXT_LIMIT } from '../src/lib/dataset-text-limits.ts';
+
+test('descriptor and README readers retain the shared draft text limit', () => {
+  assert.equal(MAX_DESCRIPTOR_BYTES, SHARED_TEXT_LIMIT);
+  assert.equal(MAX_DATASET_TEXT_BYTES, SHARED_TEXT_LIMIT);
+});
 
 async function fixture(t: TestContext) {
   const base = await fs.mkdtemp(join(tmpdir(), 'steward-descriptor-'));

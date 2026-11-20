@@ -263,6 +263,7 @@ for (const mode of ['dev', 'built'] as const) {
       modern: JSON.stringify(modern),
       legacy: JSON.stringify({ name: 'legacy', creator: 'Legacy person', task: 'Legacy task' }),
       malformed: '{invalid JSON',
+      precision: '{"unknown":900719925474099312345}',
       unsafe: JSON.stringify({ ...modern, title: '<img src=x onerror=alert(1)>',
         contributors: [{ title: '<script>creator</script>', roles: ['creator'] }],
         resources: [{ name: 'bad<script>', path: [], count: -1 }] }),
@@ -283,6 +284,16 @@ for (const mode of ['dev', 'built'] as const) {
       const response = await fetch(`${url}/datasets/ds-${name}?view=metadata`);
       assert.equal(response.status, 200, logs());
       pages[name] = (await response.text()).replace(/<!--[\s\S]*?-->/g, '');
+      if (name === 'malformed' || name === 'precision') {
+        assert.match(pages[name], /Safe metadata editing is unavailable/);
+        assert.doesNotMatch(pages[name], /aria-label="Metadata form"/);
+        if (name === 'precision') {
+          assert.match(pages[name], /number.*round-trip/);
+          const raw = await fetch(`${url}/datasets/ds-precision?view=datapackage`);
+          assert.match(await raw.text(), /900719925474099312345/);
+        }
+        continue;
+      }
       assert.match(pages[name], /aria-label="Metadata form"/);
       assert.ok(pages[name].includes('Fields marked * are required.'));
       for (const id of ['name', 'title', 'description', 'tasks', 'projects', 'stage', 'version', 'created', 'extra-keywords']) {
@@ -300,7 +311,7 @@ for (const mode of ['dev', 'built'] as const) {
       assert.ok(issuesLink);
       assert.match(issuesLink, /Issues\s+\(\d+\)/);
       assert.doesNotMatch(issuesLink, /Checks/);
-      assert.match(pages[name], /Checks update 500 ms after edits\. Changes are not saved\./);
+      assert.match(pages[name], /Checks inspect the JSON draft 500 ms after edits\. Changes are not saved\./);
       assert.match(pages[name], /aria-label="Metadata validation" aria-busy="false"/);
       const rowSections = pages[name].slice(pages[name].indexOf('id="root/resources"'), pages[name].indexOf('id="metadata-validation"'));
       assert.doesNotMatch(rowSections, /<ul\b/, 'row sections have inline errors, not duplicate error lists');
@@ -404,7 +415,7 @@ for (const mode of ['dev', 'built'] as const) {
     const metadataResponse = await fetch(new URL(metadataLink[1], response.url));
     assert.equal(metadataResponse.status, 200);
     const metadataHtml = (await metadataResponse.text()).replace(/<!--[\s\S]*?-->/g, '');
-    assert.match(metadataHtml, /aria-label="Metadata form"/);
+    assert.match(metadataHtml, /Safe metadata editing is unavailable/);
     assert.match(metadataHtml, /datapackage.json is not valid JSON/);
     const rawResponse = await fetch(`${url}/datasets/ds-readme?view=datapackage`);
     assert.equal(rawResponse.status, 200);
@@ -485,13 +496,14 @@ for (const mode of ['dev', 'built'] as const) {
     const html = (await (await fetch(`${url}/datasets/ds-resources?view=metadata`)).text()).replace(/<!--[\s\S]*?-->/g, '');
     assert.ok(html.includes('id="root/resources"'), logs());
     assert.match(html, /aria-label="Resources"/);
-    for (const [key, value] of [['name', 'items'], ['path', 'items.csv'], ['title', 'Supplied resource'], ['format', 'csv']]) {
+    for (const [key, value] of [['name', ''], ['path', 'items.csv'], ['title', 'Supplied resource'], ['format', '']]) {
       const control = html.match(new RegExp(`<input\\b(?=[^>]*name="resource-0-${key}")[^>]*>`))?.[0];
       assert.ok(control, key); assert.ok(control.includes(`value="${value}"`));
+      if (key === 'name') assert.match(control, /aria-invalid="true"/, 'missing stored name is visibly invalid');
       if (policy.resource.requiredFields.includes(key as 'name' | 'path' | 'title')) assert.match(control, /\srequired(?:[\s=>])/);
     }
     assert.match(html, /<datalist\b/); assert.ok(html.includes('value="images.v2/"'));
-    assert.match(html, /Add a resource/); assert.match(html, /aria-label="Remove resource items"/);
+    assert.match(html, /Add a resource/); assert.match(html, /aria-label="Remove resource 1"/);
     assert.doesNotMatch(html, /<input\b[^>]*name="resource-0-count"/);
     assert.match(html, /Not counted/);
     const endpoint = `${url}/datasets/ds-resources/resources`;
@@ -582,7 +594,7 @@ for (const mode of ['dev', 'built'] as const) {
   test(`${mode}: shows required overview fields with inline empty errors and no write endpoint`, async (t) => {
     const root = await fixture(t); const directory = join(root, 'ds-placeholder');
     await fs.mkdir(directory);
-    await fs.writeFile(join(directory, 'datapackage.json'), '{\r\n "unknown":900719925474099312345\r\n}\r\n');
+    await fs.writeFile(join(directory, 'datapackage.json'), '{\r\n "unknown":12345\r\n}\r\n');
     await fs.writeFile(join(directory, 'README.md'), '# Keep README');
     await fs.writeFile(join(directory, 'input.csv'), 'untouched resource');
     const before = await snapshot(root);
@@ -631,7 +643,7 @@ for (const mode of ['dev', 'built'] as const) {
       assert.equal(post.status, 405, 'Metadata saving is not implemented');
     }
     const raw = await fetch(`${url}/datasets/ds-placeholder?view=datapackage`);
-    assert.equal(raw.status, 200); assert.match(await raw.text(), /900719925474099312345/);
+    assert.equal(raw.status, 200); assert.match(await raw.text(), /12345/);
     assert.deepEqual(await snapshot(root), before, 'GET and refused POST leave all fixture bytes untouched');
   });
 

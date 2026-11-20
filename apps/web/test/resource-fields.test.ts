@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import policy from '@lazydata/validator/policy' with { type: 'json' };
-import { resourceDefaults, changeResourcePath, resourceFormModel, resourceDraftIssues } from '../src/lib/resource-fields.ts';
+import { resourceDefaults, changeResourcePath, resourceFieldEdits, resourceFormModel, resourceDraftIssues } from '../src/lib/resource-fields.ts';
+import { MetadataDraft } from '../src/lib/metadata-draft.ts';
+import { draftIssues } from '../src/lib/draft-checks.ts';
+import { createResourceCounter } from '../src/lib/resource-counter.ts';
 
 const options = [{ path: 'items.csv', kind: 'file' as const }, { path: 'images.v2', kind: 'directory' as const }];
 
@@ -21,7 +24,7 @@ test('path changes update defaults but preserve manual name/title/format edits',
   assert.deepEqual(changeResourcePath(fields, 'images.v2/', options), { ...fields, name: 'images.v2', path: 'images.v2/', format: '' });
 });
 
-test('prefills supplied resource strings, derives absent defaults and does not invent titles or counts', () => {
+test('prefills supplied strings without hiding missing metadata behind display-only defaults', () => {
   const model = resourceFormModel(JSON.stringify({ resources: [
     { path: 'items.csv', title: ' Items ' },
     { name: 'custom', path: 'images.v2', title: 'Images', format: 'invalid-for-directory', count: 999 },
@@ -29,7 +32,7 @@ test('prefills supplied resource strings, derives absent defaults and does not i
     null,
   ] }), options);
   assert.deepEqual(model.required, policy.resource.requiredFields);
-  assert.deepEqual(model.rows[0], { name: 'items', path: 'items.csv', title: ' Items ', format: 'csv' });
+  assert.deepEqual(model.rows[0], { name: '', path: 'items.csv', title: ' Items ', format: '' });
   assert.deepEqual(model.rows[1], { name: 'custom', path: 'images.v2', title: 'Images', format: '' });
   assert.deepEqual(model.rows[2], { name: '', path: null, title: null, format: null });
   assert.deepEqual(model.rows[3], { name: null, path: null, title: null, format: null });
@@ -38,6 +41,35 @@ test('prefills supplied resource strings, derives absent defaults and does not i
   assert.deepEqual(resourceFormModel('{}', options).rows, []);
   assert.deepEqual(resourceFormModel('{broken', options).rows, []);
   assert.ok(resourceFormModel('{"resources":{}}', options).message);
+});
+
+test('selecting an uncountable JSON path synchronizes its generated name and format before counting', async () => {
+  const draft = new MetadataDraft(JSON.stringify({ name: 'example', title: 'Example', description: 'Description',
+    keywords: ['task:example', 'project:example', 'stage:master'], resources: [] }));
+  const blank = { name: '', title: '', path: '', format: '' };
+  const fields = changeResourcePath(blank, 'settings.json', []);
+  let edits = resourceFieldEdits({ name: null, title: null, path: null, format: null }, fields, 'path');
+  edits = resourceFieldEdits(edits, { ...fields, title: 'Settings' }, 'title');
+  draft.update({ resources: [{ id: 200, fields: edits }] });
+  const beforeCount = draft.text();
+  assert.deepEqual(JSON.parse(beforeCount).resources, [{ name: 'settings', path: 'settings.json', format: 'json', title: 'Settings' }]);
+  assert.deepEqual(draftIssues(beforeCount), []);
+  const counter = createResourceCounter('/count', async () => new Response(JSON.stringify({ status: 'unsupported', message: 'JSON is not an array.' })));
+  assert.equal((await counter('settings.json'))?.status, 'unsupported');
+  assert.equal(draft.text(), beforeCount);
+  assert.equal(Object.hasOwn(JSON.parse(draft.text()).resources[0], 'count'), false);
+});
+
+test('path edits retain manual name/format overrides; unrelated edits do not accept defaults', () => {
+  const untouched = { name: null, title: null, path: null, format: null };
+  const current = { name: 'custom', title: 'Title', path: 'old.csv', format: 'custom' };
+  const changed = changeResourcePath(current, 'settings.json', []);
+  assert.deepEqual(resourceFieldEdits(untouched, changed, 'path'),
+    { name: 'custom', title: null, path: 'settings.json', format: 'custom' });
+  assert.deepEqual(resourceFieldEdits(untouched, changed, 'title'), { ...untouched, title: 'Title' });
+  const folder = changeResourcePath(current, 'images.v2/', options);
+  assert.deepEqual(resourceFieldEdits(untouched, folder, 'path'),
+    { name: 'custom', title: null, path: 'images.v2/', format: '' });
 });
 
 test('draft resource checks reuse shared policy, including required titles and duplicate names', () => {

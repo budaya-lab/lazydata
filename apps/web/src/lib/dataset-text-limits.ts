@@ -1,0 +1,1 @@
+export const MAX_DATASET_TEXT_BYTES = 5 * 1024 * 1024;

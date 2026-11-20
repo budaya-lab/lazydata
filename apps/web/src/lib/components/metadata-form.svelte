@@ -13,6 +13,7 @@
     import type { ContributorModel } from "$lib/contributor-fields.ts";
     import { type CheckState, createDraftChecker } from "$lib/draft-checker.ts";
     import { type DraftChanges, draftIssues } from "$lib/draft-checks.ts";
+    import { MetadataDraft, MetadataDraftError } from "$lib/metadata-draft.ts";
     import type { LicenseModel } from "$lib/license-fields.ts";
     import type { ResourceModel } from "$lib/resource-fields.ts";
     import type { SourceModel } from "$lib/source-fields.ts";
@@ -31,8 +32,10 @@
         contributorModel,
         stageOptions,
         issues,
-        metadataText,
+        draft,
         reloadUrl,
+        datasetId,
+        ondraft,
     }: {
         name: string;
         title: string;
@@ -52,20 +55,18 @@
         contributorModel: ContributorModel;
         stageOptions: { value: string; label: string }[];
         issues: string[];
-        metadataText: string;
+        draft: MetadataDraft;
         reloadUrl: string;
+        datasetId: string;
+        ondraft: (datasetId: string, error: string) => void;
     } = $props();
     let checkState = $derived<CheckState>({ pending: false, issues });
-    let changes: DraftChanges = {};
-    const checker = createDraftChecker<DraftChanges>(
-        (draft) =>
-            draftIssues(metadataText, {
-                resources: resourceModel.rows.map((fields, id) => ({
-                    id,
-                    fields,
-                })),
-                ...draft,
-            }),
+    let dateError = "";
+    let pendingDate = false;
+    const failedFields: Record<string, string> = {};
+    let syncError = $state("");
+    const checker = createDraftChecker<{ text: string; dateError?: string }>(
+        (draft) => draftIssues(draft.text, draft.dateError),
         (state) => {
             checkState = state;
         },
@@ -73,17 +74,23 @@
     onDestroy(() => checker.dispose());
 
     function edit(patch: DraftChanges) {
-        changes = {
-            ...changes,
-            ...patch,
-            ...(patch.overview
-                ? { overview: { ...changes.overview, ...patch.overview } }
-                : {}),
-            ...(patch.keywords
-                ? { keywords: { ...changes.keywords, ...patch.keywords } }
-                : {}),
-        };
-        checker.schedule(changes);
+        if (patch.overview?.createdError !== undefined) dateError = patch.overview.createdError;
+        if (patch.overview && Object.hasOwn(patch.overview, 'created')) pendingDate = !!dateError;
+        const fields = Object.entries(patch).flatMap(([section, values]) =>
+            section === 'licenseIds' ? [] : section === 'overview' || section === 'keywords'
+                ? Object.keys(values).filter((key) => key !== 'createdError').map((key) => `${section}.${key}`)
+                : [section]);
+        try {
+            draft.update(patch);
+            for (const field of fields) delete failedFields[field];
+        } catch (cause) {
+            if (!(cause instanceof MetadataDraftError)) throw cause;
+            for (const field of fields) failedFields[field] = cause.message;
+        }
+        syncError = [...new Set(Object.values(failedFields)), ...(pendingDate
+            ? ['The partial Created date is retained in the form but cannot be represented in JSON.'] : [])].join(' ');
+        ondraft(datasetId, syncError);
+        checker.schedule({ text: draft.text(), dateError });
     }
 
     const sections = [
@@ -117,6 +124,9 @@
         >
     </nav>
     <p class="text-xs text-muted-foreground">Fields marked * are required.</p>
+    {#if syncError}
+        <p role="alert" class="text-sm text-destructive">JSON preview could not include this edit: {syncError} Your input is retained; nothing is saved.</p>
+    {/if}
     <Field.Group class="gap-6">
         <Field.Set id={sections[0].id} class="scroll-mt-28 gap-4">
             <Field.Legend class="mb-2">{sections[0].label}</Field.Legend>
@@ -221,7 +231,7 @@
         />
         <MetadataLicenses
             model={licenseModel}
-            onedit={(licenses) => edit({ licenses })}
+            onedit={(licenses, licenseIds) => edit({ licenses, licenseIds })}
         />
         <MetadataSources
             model={sourceModel}
@@ -236,7 +246,7 @@
     >
         <h2 class="mb-2 text-base font-medium">Metadata checks</h2>
         <p class="mb-2 text-xs text-muted-foreground">
-            Checks update 500 ms after edits. Changes are not saved.
+            Checks inspect the JSON draft 500 ms after edits. Changes are not saved.
         </p>
         <p role="status" aria-live="polite" class="text-muted-foreground">
             {#if checkState.pending}Checking…

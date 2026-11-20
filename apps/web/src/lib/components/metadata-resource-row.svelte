@@ -32,7 +32,7 @@
         options: ResourceOption[];
         required: string[];
         counter: ReturnType<typeof createResourceCounter>;
-        onchange: (fields: ResourceFields) => void;
+        onchange: (fields: ResourceFields, edited?: keyof ResourceFields) => void;
         onremove: () => void;
     } = $props();
     const controls = [
@@ -93,8 +93,8 @@
     function edit(key: keyof ResourceFields, value: string) {
         if (key === "path") {
             invalidateCount();
-            onchange(changeResourcePath(fields, value, options));
-        } else onchange({ ...fields, [key]: value });
+            onchange(changeResourcePath(fields, value, options), key);
+        } else onchange({ ...fields, [key]: value }, key);
     }
 
     onMount(() => {
@@ -163,7 +163,7 @@
                         {count.value === 1
                             ? count.unit.slice(0, -1)
                             : count.unit}
-                    {:else if count?.status === "unsupported"}Unsupported
+                    {:else if count?.status === "unsupported"}<span class="text-xs text-muted-foreground">Not countable</span>
                     {:else if count?.status === "error"}Unavailable
                     {:else}Not counted{/if}
                 </output>
@@ -171,13 +171,13 @@
                     type="button"
                     variant="ghost"
                     size="icon-xs"
-                    aria-label={`Recount resource ${fields.name ?? position}`}
+                    aria-label={`Recount resource ${fields.name?.trim() || position}`}
                     onclick={refresh}
                     disabled={loading || !fields.path?.trim()}
                     ><RefreshCwIcon /></Button
                 >
             </div>
-            {#if count?.status === "error" || count?.status === "unsupported"}<Field.Description
+            {#if count?.status === "error"}<Field.Description
                     class="text-xs">{count.message}</Field.Description
                 >{/if}
         </Field.Field>
@@ -194,7 +194,7 @@
                     type="button"
                     variant="ghost"
                     size="icon-xs"
-                    aria-label={`Remove resource ${fields.name ?? position}`}
+                    aria-label={`Remove resource ${fields.name?.trim() || position}`}
                     onclick={onremove}><XIcon /></Button
                 >
             </div>
