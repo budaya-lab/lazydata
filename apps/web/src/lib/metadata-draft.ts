@@ -82,6 +82,7 @@ export class MetadataDraft {
 
   text(): string { return metadataText(this.data); }
   get dirty(): boolean { return this.text() !== this.initial; }
+  markSaved(text: string): void { this.initial = text; }
 
   update(changes: DraftChanges): void {
     const next = { ...this.data };

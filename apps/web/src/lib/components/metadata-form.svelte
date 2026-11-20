@@ -34,6 +34,7 @@
         issues,
         draft,
         reloadUrl,
+        saveUrl,
         datasetId,
         ondraft,
     }: {
@@ -57,6 +58,7 @@
         issues: string[];
         draft: MetadataDraft;
         reloadUrl: string;
+        saveUrl: string;
         datasetId: string;
         ondraft: (datasetId: string, error: string) => void;
     } = $props();
@@ -65,15 +67,51 @@
     let pendingDate = false;
     const failedFields: Record<string, string> = {};
     let syncError = $state("");
+    let dirty = $state(false);
+    let saving = $state(false);
+    let saveMessage = $state("");
+    let saveError = $state("");
+    let disposed = false;
     const checker = createDraftChecker<{ text: string; dateError?: string }>(
         (draft) => draftIssues(draft.text, draft.dateError),
         (state) => {
             checkState = state;
         },
     );
-    onDestroy(() => checker.dispose());
+    onDestroy(() => { disposed = true; checker.dispose(); });
+
+    async function save() {
+        if (saving || syncError || !dirty) return;
+        const text = draft.text();
+        saving = true;
+        saveMessage = "";
+        saveError = "";
+        try {
+            const response = await fetch(saveUrl, {
+                method: 'POST', headers: { 'content-type': 'application/json' }, body: text,
+            });
+            const result: unknown = await response.json();
+            if (disposed) return;
+            if (typeof result !== 'object' || result === null || !('status' in result)) throw new Error('Invalid Save response.');
+            if (!response.ok || result.status !== 'saved') {
+                saveError = 'message' in result && typeof result.message === 'string' ? result.message : 'Save could not be confirmed. Your draft is retained.';
+                return;
+            }
+            draft.markSaved(text);
+            dirty = draft.dirty;
+            ondraft(datasetId, syncError);
+            saveMessage = dirty || syncError ? 'Saved submitted changes. Newer edits are still unsaved.' : 'Saved.';
+        } catch (cause) {
+            console.error('Metadata Save request failed.', cause);
+            if (!disposed) saveError = 'Save could not be confirmed. Your draft is retained. Retry Save or reload to check the file.';
+        } finally {
+            if (!disposed) saving = false;
+        }
+    }
 
     function edit(patch: DraftChanges) {
+        saveMessage = "";
+        saveError = "";
         if (patch.overview?.createdError !== undefined) dateError = patch.overview.createdError;
         if (patch.overview && Object.hasOwn(patch.overview, 'created')) pendingDate = !!dateError;
         const fields = Object.entries(patch).flatMap(([section, values]) =>
@@ -89,6 +127,7 @@
         }
         syncError = [...new Set(Object.values(failedFields)), ...(pendingDate
             ? ['The partial Created date is retained in the form but cannot be represented in JSON.'] : [])].join(' ');
+        dirty = draft.dirty;
         ondraft(datasetId, syncError);
         checker.schedule({ text: draft.text(), dateError });
     }
@@ -270,9 +309,12 @@
     <div
         class="sticky bottom-0 flex flex-col gap-2 border-t bg-background py-3"
     >
-        <p class="text-sm text-muted-foreground">Saving is not implemented.</p>
+        <p role="status" aria-live="polite" class="text-sm text-muted-foreground">
+            {saving ? 'Saving…' : saveMessage || (dirty || syncError ? 'Unsaved changes.' : 'No unsaved changes.')}
+        </p>
+        {#if saveError}<p role="alert" class="text-sm text-destructive">{saveError}</p>{/if}
         <div class="flex flex-wrap items-center gap-2">
-            <Button type="button" disabled>Save changes</Button>
+            <Button type="button" disabled={saving || !!syncError || !dirty} onclick={save}>Save changes</Button>
             <Button type="button" variant="outline" disabled>Reset form</Button>
             <Button href={reloadUrl} variant="ghost" data-sveltekit-reload
                 >Reload file</Button

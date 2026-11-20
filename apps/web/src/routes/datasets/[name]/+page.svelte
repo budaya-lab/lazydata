@@ -76,7 +76,7 @@
         {#key baseline.name}
             <div hidden={view !== 'metadata'}>
                 {#if draft}
-                    <MetadataForm {...baseline.overview} keywordFields={baseline.keywordFields} resourceModel={baseline.resourceModel} resourceCountUrl={`${datasetUrl}/resources`} sourceModel={baseline.sourceModel} licenseModel={baseline.licenseModel} contributorModel={baseline.contributorModel} stageOptions={baseline.stageOptions} issues={baseline.issues} {draft} reloadUrl={`${datasetUrl}?view=metadata`} datasetId={baseline.name} ondraft={updateDraft} />
+                    <MetadataForm {...baseline.overview} keywordFields={baseline.keywordFields} resourceModel={baseline.resourceModel} resourceCountUrl={`${datasetUrl}/resources`} sourceModel={baseline.sourceModel} licenseModel={baseline.licenseModel} contributorModel={baseline.contributorModel} stageOptions={baseline.stageOptions} issues={baseline.issues} {draft} reloadUrl={`${datasetUrl}?view=metadata`} saveUrl={`${datasetUrl}/save`} datasetId={baseline.name} ondraft={updateDraft} />
                 {:else}
                     <p role="alert">Safe metadata editing is unavailable: {active?.error} The original JSON is still available in datapackage.json.</p>
                     {#if baseline.issues.length}

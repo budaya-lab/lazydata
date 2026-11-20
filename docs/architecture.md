@@ -45,9 +45,19 @@ number conversions. Formatting and equivalent number notation may normalize.
 After Metadata has opened, shallow Metadata/JSON navigation retains the form,
 draft and loaded revision. Failed or pending inputs remain visible and do not
 silently replace the last representable JSON. A direct JSON visit shows saved
-text until Metadata is opened. Save and Reset are disabled. There is no writer,
-POST save action, direct JSON editor or dataset creation; the app does not write
-dataset files.
+text until Metadata is opened. Reset remains disabled. Direct JSON editing and
+dataset creation are not implemented.
+
+Explicit Save posts the serialized document as UTF-8 `application/json` to
+`/datasets/[name]/save`. The server bounds the body to 5 MiB, repeats strict
+admission and shared metadata checks, then replaces only the discovered dataset's
+existing regular descriptor using an exclusive same-directory temporary file,
+file sync and atomic rename. Policy issues are reported but do not block saving
+incomplete work. No resource contents are read. Success advances the browser's
+saved baseline without replacing newer edits or row identities; failure retains
+the draft. This single-user version assumes no external changes and has no
+revision/conflict protocol. Basic mode and ownership survive; ACLs and extended
+attributes do not. See [Save usage](../apps/web/README.md#save).
 
 ## Filesystem boundaries
 
@@ -68,6 +78,7 @@ Counts are display-only and never enter metadata or shared validation. See the
 The app imports compiled public exports from the workspace validator. App
 `dev`, `build` and `check` compile the validator first. The app's browser bundle
 and VM probe check portable draft code; they are not interactive browser tests.
-Tests use synthetic temporary datasets and check that read-only routes do not
-change files. CI runs validator checks/tests and Steward checks/tests. ESLint is
-available locally with `pnpm lint` but is not a CI step.
+Tests use synthetic temporary datasets. Read-only routes leave files unchanged;
+Save tests cover exact replacement, refused input and pre-rename failure cleanup.
+CI runs validator checks/tests and Steward checks/tests. ESLint is available
+locally with `pnpm lint` but is not a CI step.

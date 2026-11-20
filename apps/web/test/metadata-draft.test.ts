@@ -15,6 +15,22 @@ test('a working object normalizes JSON while preserving unexposed properties', (
   assert.equal(draft.dirty, false);
 });
 
+test('acknowledging a save advances only the saved baseline, not newer edits or row identities', () => {
+  const draft = new MetadataDraft('{"title":"Original","sources":[{"title":"A","extra":true}]}');
+  draft.update({ overview: { title: 'Saved' }, sources: [{ id: 0, fields: { title: 'B', path: '' } }] });
+  const submitted = draft.text();
+  draft.update({ overview: { title: 'Newer' } });
+  draft.markSaved(submitted);
+  assert.equal(read(draft).title, 'Newer');
+  assert.equal(draft.dirty, true);
+  draft.update({ overview: { title: 'Saved' }, sources: [{ id: 0, fields: { title: 'B', path: '' } }] });
+  assert.equal(draft.dirty, false);
+  assert.equal(read(draft).sources[0].extra, true);
+  draft.update({ overview: { title: 'Again' } });
+  draft.markSaved(draft.text());
+  assert.equal(draft.dirty, false);
+});
+
 test('successive edits update the same draft, not a replay of old form changes', () => {
   const draft = new MetadataDraft('{"resources":[{"path":"old.csv","count":12,"extra":true}],"sources":[{"title":"Old","extra":true}],"contributors":[{"title":"Old","extra":true}],"keywords":["task:old","stage:raw",123]}');
   draft.update({ overview: { name: 'example', title: 'Dataset' } });

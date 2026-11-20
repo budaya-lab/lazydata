@@ -1,6 +1,6 @@
 # Local Dataset Steward
 
-A local, read-only SvelteKit app for datasets under `DATASET_ROOT`. It discovers
+A local SvelteKit app for datasets under `DATASET_ROOT`. It discovers
 immediate `ds-*` directories, shows metadata status, and opens each dataset's
 README by default. Directories without a descriptor remain visible. The dashboard
 supports search and metadata-status filters.
@@ -14,9 +14,9 @@ supports search and metadata-status filters.
 - **Metadata** provides local form controls for Overview, Keywords, Resources,
   Sources, Licenses and Contributors, plus shared metadata checks. Edits update
   one in-memory object. They appear in the read-only `datapackage.json` preview
-  after Metadata is opened and survive switching between the views. Save and
-  Reset remain disabled; direct JSON editing and dataset creation are not
-  implemented.
+  after Metadata is opened and survive switching between the views. **Save
+  changes** writes the draft to the dataset's existing descriptor. Reset remains
+  disabled; direct JSON editing and dataset creation are not implemented.
 - **datapackage.json** displays the saved JSON as escaped text unless Metadata
   has been opened in the current page session, in which case it previews the
   synchronized draft. Normal JSON serialization may change whitespace, escapes
@@ -45,6 +45,21 @@ extension selects the counter, even when Format is overridden. Unsupported forma
 are marked “Not countable”; read and safety failures are not reported as zero.
 Counts never enter the metadata draft.
 
+## Save
+
+Save sends the current JSON draft to one same-origin endpoint. The server repeats
+strict JSON admission and shared metadata checks, then writes the exact text using
+a same-directory temporary file and atomic rename. Metadata policy issues do not
+block saving incomplete work; malformed or unsafe JSON does. Unrepresentable form
+inputs block Save. Failed requests retain the draft; edits made during a save
+remain unsaved until the next Save.
+
+This first version assumes one user and no external file changes. There is no
+revision/conflict detection: Save overwrites the descriptor currently on disk.
+Basic file permissions and ownership are retained, but ACLs and extended
+attributes are not preserved. Only `datapackage.json` is written, never README or
+resources.
+
 ## Run locally
 
 Use Node.js 24+ and pnpm 12.x. Install from the `lazydata/` workspace root:
@@ -69,8 +84,8 @@ README and descriptor reads are limited to discovered datasets and the fixed
 filenames (`README.md` and `datapackage.json`). They are bounded to 5 MiB and
 require regular, single-link UTF-8 files. The separate resource counter reads only
 safe selected paths and has byte, traversal, depth and time limits. These checks
-reduce risk but do not sandbox hostile concurrent filesystem changes. The app
-never writes dataset files.
+reduce risk but do not sandbox hostile concurrent filesystem changes. Only an
+explicit Save writes the descriptor.
 
 ## Checks
 

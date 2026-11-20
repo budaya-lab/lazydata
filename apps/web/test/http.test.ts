@@ -591,7 +591,64 @@ for (const mode of ['dev', 'built'] as const) {
     assert.deepEqual(await snapshot(root), before);
   });
 
-  test(`${mode}: shows required overview fields with inline empty errors and no write endpoint`, async (t) => {
+  test(`${mode}: saves only the selected descriptor through same-origin JSON POST`, async (t) => {
+    const root = await fixture(t);
+    const directory = join(root, 'ds-save %');
+    await fs.mkdir(directory);
+    const path = join(directory, 'datapackage.json');
+    await fs.writeFile(path, '{"title":"Original"}');
+    await fs.writeFile(join(directory, 'README.md'), '# Keep README');
+    const { url, logs } = await serve(t, mode, root);
+    const endpoint = `${url}/datasets/${encodeURIComponent('ds-save %')}/save`;
+    const headers = { origin: url, 'content-type': 'application/json' };
+    const body = JSON.stringify({ name: 'not-the-folder', title: 'Saved 中文', unknown: { kept: true },
+      resources: [{ path: 'missing.csv' }] }, null, 2) + '\n';
+    const before = await snapshot(root);
+    for (const origin of ['https://untrusted.example', 'null', '']) {
+      const response = await fetch(endpoint, { method: 'POST', headers: {
+        'content-type': 'application/json', ...(origin ? { origin } : {}),
+      }, body });
+      assert.equal(response.status, 403, logs());
+    }
+    assert.equal((await fetch(endpoint)).status, 405);
+    assert.equal((await fetch(endpoint, { method: 'POST', headers: { origin: url }, body: '{}' })).status, 415);
+    for (const text of ['{bad', '[]', '{"x":1,"x":2}', '{"x":9007199254740993}']) {
+      const refused = await fetch(endpoint, { method: 'POST', headers, body: text });
+      assert.equal(refused.status, 400, logs());
+      assert.equal((await refused.json()).status, 'error');
+    }
+    assert.deepEqual(await snapshot(root), before);
+    const response = await fetch(endpoint, { method: 'POST', headers, body });
+    assert.equal(response.status, 200, logs());
+    const result = await response.json();
+    assert.equal(result.status, 'saved');
+    assert.ok(result.issues.length, 'policy issues are reported, not a block on saving incomplete metadata');
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(await fs.readFile(path, 'utf8'), body);
+    const raw = await (await fetch(`${url}/datasets/${encodeURIComponent('ds-save %')}?view=datapackage`)).text();
+    assert.match(raw, /Saved 中文/);
+    assert.equal(await fs.readFile(join(directory, 'README.md'), 'utf8'), '# Keep README');
+    assert.deepEqual((await fs.readdir(directory)).sort(), ['README.md', 'datapackage.json']);
+    const missing = await fetch(`${url}/datasets/ds-missing/save`, { method: 'POST', headers, body });
+    assert.equal(missing.status, 404);
+    assert.equal((await missing.text()).includes(root), false);
+    const large = JSON.stringify({ title: 'x'.repeat(600 * 1024) });
+    assert.equal((await fetch(endpoint, { method: 'POST', headers, body: large })).status, 200, logs());
+    assert.equal(await fs.readFile(path, 'utf8'), large);
+    const tooLarge = await fetch(endpoint, { method: 'POST', headers, body: ' '.repeat(5 * 1024 * 1024 + 1) });
+    assert.equal(tooLarge.status, 413, logs());
+    assert.equal(await fs.readFile(path, 'utf8'), large);
+    await fs.rename(path, `${path}.kept`);
+    await fs.symlink(`${path}.kept`, path);
+    const failed = await fetch(endpoint, { method: 'POST', headers, body });
+    assert.equal(failed.status, 500);
+    const failure = await failed.json();
+    assert.equal(failure.status, 'error');
+    assert.equal(failure.message.includes(root), false);
+    assert.equal(await fs.readFile(`${path}.kept`, 'utf8'), large);
+  });
+
+  test(`${mode}: shows required overview fields with inline empty errors and initially disabled Save`, async (t) => {
     const root = await fixture(t); const directory = join(root, 'ds-placeholder');
     await fs.mkdir(directory);
     await fs.writeFile(join(directory, 'datapackage.json'), '{\r\n "unknown":12345\r\n}\r\n');
@@ -640,7 +697,7 @@ for (const mode of ['dev', 'built'] as const) {
         method: 'POST', headers: { origin: url, accept: 'application/json', 'x-sveltekit-action': 'true' },
         body: new URLSearchParams({ submission: '{"fields":[]}' }),
       });
-      assert.equal(post.status, 405, 'Metadata saving is not implemented');
+      assert.equal(post.status, 405, 'Save accepts a JSON document at its own endpoint, not field replay');
     }
     const raw = await fetch(`${url}/datasets/ds-placeholder?view=datapackage`);
     assert.equal(raw.status, 200); assert.match(await raw.text(), /12345/);

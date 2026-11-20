@@ -1,9 +1,11 @@
 import type { IncomingMessage, Server } from 'node:http';
+import { MAX_DATASET_TEXT_BYTES } from '../src/lib/dataset-text-limits.ts';
 
 if (process.env.SOCKET_PATH) {
   throw new Error('SOCKET_PATH is not supported by the local Steward.');
 }
 
+process.env.BODY_SIZE_LIMIT = String(MAX_DATASET_TEXT_BYTES);
 process.env.HOST = '127.0.0.1';
 process.env.PROTOCOL_HEADER = 'x-lazydata-protocol';
 delete process.env.HOST_HEADER;
